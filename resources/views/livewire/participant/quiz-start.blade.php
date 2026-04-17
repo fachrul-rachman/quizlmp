@@ -1,0 +1,49 @@
+<div class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+    @if ($state === 'invalid')
+        <h1 class="text-xl font-semibold">Link Quiz Tidak Valid</h1>
+        <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">Link yang Anda buka tidak ditemukan atau tidak tersedia.</div>
+    @elseif ($state === 'final')
+        <h1 class="text-xl font-semibold">Link Quiz Tidak Bisa Digunakan</h1>
+        <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">{{ $finalMessage }}</div>
+    @elseif ($state === 'unavailable')
+        <h1 class="text-xl font-semibold">Quiz tidak tersedia.</h1>
+    @elseif ($state === 'start')
+        @if (session('success'))
+            <div class="mb-4 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800 dark:border-green-900/50 dark:bg-green-950/30 dark:text-green-200">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        <div class="mb-4">
+            <div class="text-sm text-zinc-500 dark:text-zinc-400">Nama Quiz</div>
+            <div class="mt-1 text-lg font-semibold">{{ $title }}</div>
+            <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">Durasi: {{ $durationMinutes }} menit</div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+                <label class="block text-sm font-medium mb-1">Nama Peserta</label>
+                <input wire:model.defer="participantName" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
+                @error('participantName')
+                    <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                @enderror
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Melamar Untuk</label>
+                <input wire:model.defer="participantAppliedFor" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
+                @error('participantAppliedFor')
+                    <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
+
+        <div class="mt-5 flex items-center gap-2">
+            <button type="button" wire:click="startTest" class="rounded-md bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
+                Mulai Test
+            </button>
+            <button type="button" wire:click="saveIdentity" class="rounded-md border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800/40">
+                Simpan
+            </button>
+        </div>
+    @endif
+</div>
