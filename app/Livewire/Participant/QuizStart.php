@@ -74,6 +74,12 @@ class QuizStart extends Component
         $link = $this->getLinkOrFail();
         $attempt = $link->attempt;
 
+        if (! in_array($link->status, ['unused', 'opened'], true)) {
+            throw ValidationException::withMessages([
+                'participantName' => 'Status link quiz tidak valid.',
+            ]);
+        }
+
         if ($attempt && $attempt->status !== 'not_started') {
             throw ValidationException::withMessages([
                 'participantName' => 'Tidak bisa mengubah identitas setelah test dimulai.',
@@ -107,6 +113,10 @@ class QuizStart extends Component
     public function startTest(): void
     {
         $link = $this->getLinkOrFail();
+
+        if (! in_array($link->status, ['unused', 'opened'], true)) {
+            return;
+        }
 
         $this->validate([
             'participantName' => ['required', 'string', 'max:255'],

@@ -2,10 +2,13 @@
 
 use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\GoogleDriveOAuthController;
 use App\Http\Controllers\Admin\AdminQuizController;
 use App\Http\Controllers\Admin\AdminQuizTemplateController;
 use App\Http\Controllers\Admin\AdminGenerateLinkController;
 use App\Http\Controllers\Admin\AdminQuizLinkController;
+use App\Http\Controllers\Admin\AdminResultController;
+use App\Http\Controllers\Admin\AdminUserController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -16,6 +19,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::middleware('auth')->group(function () {
         Route::get('/dashboard', AdminDashboardController::class)->name('dashboard');
+        Route::get('/integrations/google-drive/connect', [GoogleDriveOAuthController::class, 'redirect'])->name('integrations.google-drive.connect');
 
         Route::get('/quizzes', [AdminQuizController::class, 'index'])->name('quizzes.index');
         Route::get('/quizzes/template', AdminQuizTemplateController::class)->name('quizzes.template');
@@ -30,10 +34,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/links', [AdminQuizLinkController::class, 'index'])->name('links.index');
         Route::get('/links/{quizLink}', [AdminQuizLinkController::class, 'show'])->name('links.show');
 
-        Route::view('/results', 'admin.placeholder')->name('results.index');
-        Route::view('/results/{id}', 'admin.placeholder')->name('results.show');
+        Route::get('/results', [AdminResultController::class, 'index'])->name('results.index');
+        Route::get('/results/{quizResult}', [AdminResultController::class, 'show'])->name('results.show');
 
-        Route::view('/users', 'admin.placeholder')->middleware('super_admin')->name('users.index');
+        Route::middleware('super_admin')->group(function () {
+            Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+            Route::get('/users/create', [AdminUserController::class, 'create'])->name('users.create');
+            Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
+            Route::get('/users/{user}/edit', [AdminUserController::class, 'edit'])->name('users.edit');
+            Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
+            Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
+        });
     });
 });
 

@@ -56,7 +56,13 @@ class AdminQuizController extends Controller
 
     public function show(Quiz $quiz): View
     {
-        $quiz->load(['creator:id,name', 'updater:id,name', 'questions' => fn ($q) => $q->orderBy('order_number')]);
+        $quiz->load([
+            'creator:id,name',
+            'updater:id,name',
+            'questions' => fn ($q) => $q->orderBy('order_number'),
+            'questions.options' => fn ($q) => $q->orderBy('sort_order'),
+            'questions.shortAnswerKeys' => fn ($q) => $q->orderBy('sort_order'),
+        ]);
 
         return view('admin.quizzes.show', [
             'quiz' => $quiz,

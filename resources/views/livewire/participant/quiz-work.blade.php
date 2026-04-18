@@ -42,7 +42,15 @@
 
             <div class="mt-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
                 <div class="text-sm text-zinc-600 dark:text-zinc-300 mb-2">Soal</div>
-                <div class="whitespace-pre-line">{{ $currentQuestionText }}</div>
+                @if (filled($currentQuestionText))
+                    <div class="whitespace-pre-line">{{ $currentQuestionText }}</div>
+                @endif
+
+                @if ($currentQuestionImagePath)
+                    <div class="@if(filled($currentQuestionText)) mt-4 @endif">
+                        <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($currentQuestionImagePath) }}" alt="Gambar soal" class="max-h-72 rounded-md border border-zinc-200 object-contain dark:border-zinc-800" />
+                    </div>
+                @endif
 
                 @if ($currentQuestionType === 'multiple_choice')
                     <div class="mt-4 space-y-2">
@@ -57,7 +65,14 @@
                                 />
                                 <div class="min-w-0">
                                     <div class="text-sm font-semibold">{{ $opt['label'] }}</div>
-                                    <div class="text-sm text-zinc-700 dark:text-zinc-200 whitespace-pre-line">{{ $opt['text'] }}</div>
+                                    @if (filled($opt['text']))
+                                        <div class="text-sm text-zinc-700 dark:text-zinc-200 whitespace-pre-line">{{ $opt['text'] }}</div>
+                                    @endif
+                                    @if (!empty($opt['image_path']))
+                                        <div class="@if(filled($opt['text'])) mt-3 @else mt-2 @endif">
+                                            <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($opt['image_path']) }}" alt="Gambar opsi {{ $opt['label'] }}" class="max-h-48 rounded-md border border-zinc-200 object-contain dark:border-zinc-800" />
+                                        </div>
+                                    @endif
                                 </div>
                             </label>
                         @endforeach

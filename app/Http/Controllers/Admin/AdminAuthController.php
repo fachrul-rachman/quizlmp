@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,6 +16,16 @@ class AdminAuthController extends Controller
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
         ]);
+
+        $user = User::withTrashed()
+            ->where('email', $credentials['email'])
+            ->first();
+
+        if ($user && ($user->trashed() || ! $user->is_active)) {
+            return back()
+                ->withInput($request->only('email'))
+                ->with('error', 'Akun tidak aktif.');
+        }
 
         if (! Auth::attempt($credentials)) {
             return back()
@@ -38,4 +49,3 @@ class AdminAuthController extends Controller
         return redirect()->to('/admin/dashboard');
     }
 }
-

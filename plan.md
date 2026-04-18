@@ -117,13 +117,13 @@ Aturan update:
 - Error handling admin: `Upload PDF ke Google Drive gagal.` / `Data gagal disimpan.` sesuai konteks
 
 ## Iterasi 13 — Upload Google Drive + Discord Webhook
-- Status: IN PROGRESS (2026-04-17)
-- Upload PDF ke Google Drive API (simpan `google_drive_file_id`, `google_drive_url`) — DONE
-- Kirim Discord webhook (payload sesuai spesifikasi) + simpan `discord_webhook_logs` — TODO
+- Status: DONE (2026-04-18)
+- Upload PDF ke Google Drive API (simpan `google_drive_file_id`, `google_drive_url`)
+- Kirim Discord webhook (payload sesuai spesifikasi) + simpan `discord_webhook_logs`
 - Rule: kegagalan upload/webhook tidak boleh membatalkan result final (no rollback result)
 
 ## Iterasi 14 — Admin: Hasil (List + Detail) Read-Only
-- Status: TODO
+- Status: DONE (2026-04-18)
 - Hasil List: filter/search ringan sesuai desain + badge status + empty state
 - Hasil Detail:
   - identitas peserta (nama, melamar untuk)
@@ -133,13 +133,18 @@ Aturan update:
 - Rule: tidak ada edit hasil, tidak ada resend webhook, tidak ada regenerate PDF
 
 ## Iterasi 15 — Admin Users (Super Admin Only)
-- Status: TODO
+- Status: DONE (2026-04-18)
 - Admin User List/Create/Edit (role enum + is_active)
 - Validasi: email unique, role hanya `super_admin`/`admin`
 - Proteksi route khusus super admin
 
 ## Iterasi 16 — Hardening & QA
-- Status: TODO
+- Status: DONE (2026-04-18)
+- Hardening auth: user nonaktif / soft-deleted ditolak login
+- Hardening super admin: tidak bisa hapus akun sendiri, nonaktifkan akun sendiri, atau menurunkan role sendiri
+- Hardening peserta: start/save identitas hanya boleh dari status link yang valid
+- QA otomatis: suite test dirapikan ke flow aplikasi dan memakai RefreshDatabase
+- Catatan: verifikasi manual integrasi eksternal tetap bergantung pada kredensial env aktif
 - Konsistensi status flow (no illegal jump)
 - Proteksi akses peserta (tidak bisa enumerate token lain)
 - Sanitasi nama file upload + path storage aman

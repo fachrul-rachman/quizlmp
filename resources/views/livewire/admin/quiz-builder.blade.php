@@ -99,6 +99,33 @@
                         @enderror
                     </div>
 
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Gambar Soal</label>
+                        <input type="file" wire:model="questions.{{ $qi }}.question_image_upload" accept="image/*" class="block w-full text-sm" />
+                        <div class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Teks atau gambar boleh salah satu, atau keduanya.</div>
+                        @error('questions.'.$qi.'.question_image_upload')
+                            <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                        @enderror
+
+                        @php
+                            $questionPreviewUrl = null;
+                            if (!empty($q['question_image_upload'])) {
+                                $questionPreviewUrl = $q['question_image_upload']->temporaryUrl();
+                            } elseif (!empty($q['question_image_path']) && empty($q['remove_question_image'])) {
+                                $questionPreviewUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($q['question_image_path']);
+                            }
+                        @endphp
+
+                        @if ($questionPreviewUrl)
+                            <div class="mt-3">
+                                <img src="{{ $questionPreviewUrl }}" alt="Preview gambar soal {{ $qi + 1 }}" class="max-h-56 rounded-md border border-zinc-200 object-contain dark:border-zinc-800" />
+                                <button type="button" wire:click="removeQuestionImage({{ $qi }})" class="mt-2 text-sm text-red-600 underline underline-offset-2 dark:text-red-400">
+                                    Hapus Gambar Soal
+                                </button>
+                            </div>
+                        @endif
+                    </div>
+
                     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div>
                             <label class="block text-sm font-medium mb-1">Jenis Jawaban</label>
@@ -131,20 +158,49 @@
 
                             <div class="mt-3 space-y-2">
                                 @foreach (($q['options'] ?? []) as $oi => $opt)
-                                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-12 sm:items-center">
-                                        <div class="sm:col-span-1 flex items-center gap-2">
+                                    <div class="rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
+                                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-12 sm:items-start">
+                                        <div class="sm:col-span-1 flex items-center gap-2 pt-2">
                                             <input type="radio" name="correct-{{ $qi }}" @checked(!empty($opt['is_correct'])) wire:click="markCorrect({{ $qi }}, {{ $oi }})" />
                                         </div>
-                                        <div class="sm:col-span-10">
+                                        <div class="sm:col-span-10 space-y-3">
                                             <input wire:model.defer="questions.{{ $qi }}.options.{{ $oi }}.option_text" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
                                             @error('questions.'.$qi.'.options.'.$oi.'.option_text')
                                                 <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
                                             @enderror
+
+                                            <div>
+                                                <label class="block text-sm font-medium mb-1">Gambar Opsi</label>
+                                                <input type="file" wire:model="questions.{{ $qi }}.options.{{ $oi }}.option_image_upload" accept="image/*" class="block w-full text-sm" />
+                                                <div class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Setiap opsi boleh teks, gambar, atau keduanya.</div>
+                                                @error('questions.'.$qi.'.options.'.$oi.'.option_image_upload')
+                                                    <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                                                @enderror
+
+                                                @php
+                                                    $optionPreviewUrl = null;
+                                                    if (!empty($opt['option_image_upload'])) {
+                                                        $optionPreviewUrl = $opt['option_image_upload']->temporaryUrl();
+                                                    } elseif (!empty($opt['option_image_path']) && empty($opt['remove_option_image'])) {
+                                                        $optionPreviewUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($opt['option_image_path']);
+                                                    }
+                                                @endphp
+
+                                                @if ($optionPreviewUrl)
+                                                    <div class="mt-3">
+                                                        <img src="{{ $optionPreviewUrl }}" alt="Preview gambar opsi {{ $oi + 1 }}" class="max-h-40 rounded-md border border-zinc-200 object-contain dark:border-zinc-800" />
+                                                        <button type="button" wire:click="removeOptionImage({{ $qi }}, {{ $oi }})" class="mt-2 text-sm text-red-600 underline underline-offset-2 dark:text-red-400">
+                                                            Hapus Gambar Opsi
+                                                        </button>
+                                                    </div>
+                                                @endif
+                                            </div>
                                         </div>
-                                        <div class="sm:col-span-1">
+                                        <div class="sm:col-span-1 pt-2">
                                             <button type="button" wire:click="removeOption({{ $qi }}, {{ $oi }})" class="text-sm text-red-600 underline underline-offset-2 dark:text-red-400">
                                                 Hapus
                                             </button>
+                                        </div>
                                         </div>
                                     </div>
                                 @endforeach

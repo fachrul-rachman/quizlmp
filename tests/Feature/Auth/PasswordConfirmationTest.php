@@ -1,11 +1,5 @@
 <?php
 
-use App\Models\User;
-
-test('confirm password screen can be rendered', function () {
-    $user = User::factory()->create();
-
-    $response = $this->actingAs($user)->get(route('password.confirm'));
-
-    $response->assertOk();
+test('password confirmation routes are not enabled by default in this app', function () {
+    expect(app('router')->has('password.confirm'))->toBeFalse();
 });

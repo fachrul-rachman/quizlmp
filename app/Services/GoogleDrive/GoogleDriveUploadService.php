@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 class GoogleDriveUploadService
 {
     public function __construct(
-        private readonly GoogleServiceAccountTokenService $tokenService,
+        private readonly GoogleDriveAccessTokenService $tokenService,
     ) {
     }
 

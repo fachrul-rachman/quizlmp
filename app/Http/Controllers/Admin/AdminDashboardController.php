@@ -3,19 +3,27 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\GoogleDrive\GoogleDriveOAuthTokenService;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 
 class AdminDashboardController extends Controller
 {
-    public function __invoke(): View
+    public function __invoke(GoogleDriveOAuthTokenService $googleDriveOAuthTokenService): View
     {
         $stats = [
             'total_quizzes' => DB::table('quizzes')->count(),
             'total_links' => DB::table('quiz_links')->count(),
             'total_results' => DB::table('quiz_results')->count(),
             'total_admin_users' => User::count(),
+        ];
+
+        $googleDrive = [
+            'enabled' => filter_var(env('GOOGLE_DRIVE_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+            'auth_mode' => strtolower(trim((string) env('GOOGLE_DRIVE_AUTH_MODE', 'service_account'))),
+            'folder_id' => (string) env('GOOGLE_DRIVE_FOLDER_ID', ''),
+            'oauth_connected' => $googleDriveOAuthTokenService->tokenFileExists(),
         ];
 
         $latestResults = DB::table('quiz_results')
@@ -39,6 +47,7 @@ class AdminDashboardController extends Controller
         return view('admin.dashboard', [
             'stats' => $stats,
             'latestResults' => $latestResults,
+            'googleDrive' => $googleDrive,
         ]);
     }
 }

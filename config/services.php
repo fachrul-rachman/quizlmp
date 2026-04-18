@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'google_drive' => [
+        'auth_mode' => env('GOOGLE_DRIVE_AUTH_MODE', 'service_account'),
+        'oauth_client_id' => env('GOOGLE_DRIVE_OAUTH_CLIENT_ID'),
+        'oauth_client_secret' => env('GOOGLE_DRIVE_OAUTH_CLIENT_SECRET'),
+        'oauth_redirect_uri' => env('GOOGLE_DRIVE_OAUTH_REDIRECT_URI'),
+        'oauth_token_uri' => env('GOOGLE_DRIVE_OAUTH_TOKEN_URI', 'https://oauth2.googleapis.com/token'),
+    ],
+
 ];

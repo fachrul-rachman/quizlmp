@@ -1,8 +1,12 @@
 <?php
 
+use App\Http\Controllers\Admin\GoogleDriveOAuthController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
+Route::view('/login', 'admin.auth.login')->name('login');
+
+Route::get('/callback', [GoogleDriveOAuthController::class, 'callback'])->name('google-drive.callback');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');

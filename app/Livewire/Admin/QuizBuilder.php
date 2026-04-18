@@ -8,6 +8,7 @@ use App\Models\Quiz;
 use App\Models\ShortAnswerKey;
 use App\Services\QuizQuestionImportParser;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -67,6 +68,9 @@ class QuizBuilder extends Component
                 return [
                     'id' => $opt->id,
                     'option_text' => (string) ($opt->option_text ?? ''),
+                    'option_image_path' => $opt->option_image_path,
+                    'option_image_upload' => null,
+                    'remove_option_image' => false,
                     'is_correct' => (bool) $opt->is_correct,
                 ];
             })->all();
@@ -81,6 +85,9 @@ class QuizBuilder extends Component
             return [
                 'id' => $question->id,
                 'question_text' => $question->question_text,
+                'question_image_path' => $question->question_image_path,
+                'question_image_upload' => null,
+                'remove_question_image' => false,
                 'question_type' => $question->question_type,
                 'is_active' => (bool) $question->is_active,
                 'options' => $options,
@@ -104,6 +111,16 @@ class QuizBuilder extends Component
     {
         unset($this->questions[$index]);
         $this->questions = array_values($this->questions);
+    }
+
+    public function removeQuestionImage(int $questionIndex): void
+    {
+        if (! isset($this->questions[$questionIndex])) {
+            return;
+        }
+
+        $this->questions[$questionIndex]['question_image_upload'] = null;
+        $this->questions[$questionIndex]['remove_question_image'] = true;
     }
 
     public function addOption(int $questionIndex): void
@@ -130,6 +147,16 @@ class QuizBuilder extends Component
         $this->questions[$questionIndex]['options'] = $options;
     }
 
+    public function removeOptionImage(int $questionIndex, int $optionIndex): void
+    {
+        if (! isset($this->questions[$questionIndex]['options'][$optionIndex])) {
+            return;
+        }
+
+        $this->questions[$questionIndex]['options'][$optionIndex]['option_image_upload'] = null;
+        $this->questions[$questionIndex]['options'][$optionIndex]['remove_option_image'] = true;
+    }
+
     public function markCorrect(int $questionIndex, int $optionIndex): void
     {
         $options = $this->questions[$questionIndex]['options'] ?? [];
@@ -142,6 +169,7 @@ class QuizBuilder extends Component
     public function save(): void
     {
         $this->validateBase();
+        $this->validateImages();
         $this->validateQuestions();
 
         DB::transaction(function (): void {
@@ -184,10 +212,11 @@ class QuizBuilder extends Component
 
                 $question->fill([
                     'question_type' => $q['question_type'],
-                    'question_text' => $q['question_text'],
+                    'question_text' => $this->nullableTrim($q['question_text'] ?? null),
                     'order_number' => $pos + 1,
                     'is_active' => (bool) ($q['is_active'] ?? true),
                 ]);
+                $question->question_image_path = $this->storeQuestionImage($question, $q);
                 $question->updated_by = auth()->id();
                 $question->save();
 
@@ -195,17 +224,14 @@ class QuizBuilder extends Component
 
                 if ($q['question_type'] === 'multiple_choice') {
                     $this->syncOptions($question, $q['options']);
-                    ShortAnswerKey::query()->where('question_id', $question->id)->delete();
+                    $this->deleteShortAnswerKeys($question);
                 } else {
-                    QuestionOption::query()->where('question_id', $question->id)->delete();
+                    $this->deleteOptions($question);
                     $this->syncShortAnswers($question, (string) ($q['short_answers'] ?? ''));
                 }
             }
 
-            Question::query()
-                ->where('quiz_id', $quiz->id)
-                ->whereNotIn('id', $keepQuestionIds)
-                ->delete();
+            $this->deleteRemovedQuestions($quiz->id, $keepQuestionIds);
         });
 
         session()->flash('success', 'Quiz berhasil disimpan.');
@@ -228,6 +254,9 @@ class QuizBuilder extends Component
                 $options = array_map(fn ($opt) => [
                     'id' => null,
                     'option_text' => $opt['option_text'],
+                    'option_image_path' => null,
+                    'option_image_upload' => null,
+                    'remove_option_image' => false,
                     'is_correct' => (bool) $opt['is_correct'],
                 ], $q['options']);
 
@@ -241,6 +270,9 @@ class QuizBuilder extends Component
                 $this->questions[] = [
                     'id' => null,
                     'question_text' => $q['question_text'],
+                    'question_image_path' => null,
+                    'question_image_upload' => null,
+                    'remove_question_image' => false,
                     'question_type' => 'multiple_choice',
                     'is_active' => true,
                     'options' => $options,
@@ -250,6 +282,9 @@ class QuizBuilder extends Component
                 $this->questions[] = [
                     'id' => null,
                     'question_text' => $q['question_text'],
+                    'question_image_path' => null,
+                    'question_image_upload' => null,
+                    'remove_question_image' => false,
                     'question_type' => 'short_answer',
                     'is_active' => true,
                     'options' => [
@@ -284,6 +319,19 @@ class QuizBuilder extends Component
         ]);
     }
 
+    private function validateImages(): void
+    {
+        $this->validate([
+            'questions.*.question_image_upload' => ['nullable', 'image', 'max:2048'],
+            'questions.*.options.*.option_image_upload' => ['nullable', 'image', 'max:2048'],
+        ], [
+            'questions.*.question_image_upload.image' => 'Gambar soal harus berupa file gambar.',
+            'questions.*.question_image_upload.max' => 'Gambar soal maksimal 2MB.',
+            'questions.*.options.*.option_image_upload.image' => 'Gambar opsi harus berupa file gambar.',
+            'questions.*.options.*.option_image_upload.max' => 'Gambar opsi maksimal 2MB.',
+        ]);
+    }
+
     private function validateQuestions(): void
     {
         if (count($this->questions) < 1) {
@@ -293,9 +341,9 @@ class QuizBuilder extends Component
         }
 
         foreach (array_values($this->questions) as $qi => $q) {
-            if (trim((string) ($q['question_text'] ?? '')) === '') {
+            if (! $this->questionHasContent($q)) {
                 throw ValidationException::withMessages([
-                    "questions.$qi.question_text" => 'Soal wajib diisi.',
+                    "questions.$qi.question_text" => 'Soal wajib punya teks atau gambar.',
                 ]);
             }
 
@@ -314,16 +362,13 @@ class QuizBuilder extends Component
                     ]);
                 }
 
-                $filled = [];
                 $correctCount = 0;
                 foreach (array_values($options) as $oi => $opt) {
-                    $text = trim((string) ($opt['option_text'] ?? ''));
-                    if ($text === '') {
+                    if (! $this->optionHasContent($opt)) {
                         throw ValidationException::withMessages([
-                            "questions.$qi.options.$oi.option_text" => 'Opsi wajib diisi.',
+                            "questions.$qi.options.$oi.option_text" => 'Opsi wajib punya teks atau gambar.',
                         ]);
                     }
-                    $filled[] = $text;
                     if (! empty($opt['is_correct'])) {
                         $correctCount++;
                     }
@@ -370,20 +415,17 @@ class QuizBuilder extends Component
 
             $option->fill([
                 'option_key' => $keys[$idx] ?? 'E',
-                'option_text' => trim((string) $opt['option_text']),
-                'option_image_path' => null,
+                'option_text' => $this->nullableTrim($opt['option_text'] ?? null),
                 'is_correct' => (bool) ($opt['is_correct'] ?? false),
                 'sort_order' => $idx + 1,
             ]);
+            $option->option_image_path = $this->storeOptionImage($option, $opt);
             $option->save();
 
             $keepOptionIds[] = $option->id;
         }
 
-        QuestionOption::query()
-            ->where('question_id', $question->id)
-            ->whereNotIn('id', $keepOptionIds)
-            ->delete();
+        $this->deleteRemovedOptions($question->id, $keepOptionIds);
     }
 
     private function syncShortAnswers(Question $question, string $raw): void
@@ -439,6 +481,9 @@ class QuizBuilder extends Component
         return [
             'id' => null,
             'question_text' => '',
+            'question_image_path' => null,
+            'question_image_upload' => null,
+            'remove_question_image' => false,
             'question_type' => 'multiple_choice',
             'is_active' => true,
             'options' => [
@@ -457,8 +502,152 @@ class QuizBuilder extends Component
         return [
             'id' => null,
             'option_text' => '',
+            'option_image_path' => null,
+            'option_image_upload' => null,
+            'remove_option_image' => false,
             'is_correct' => false,
         ];
+    }
+
+    private function questionHasContent(array $question): bool
+    {
+        if ($this->nullableTrim($question['question_text'] ?? null) !== null) {
+            return true;
+        }
+
+        if (! empty($question['question_image_upload'])) {
+            return true;
+        }
+
+        return is_string($question['question_image_path'] ?? null)
+            && $question['question_image_path'] !== ''
+            && empty($question['remove_question_image']);
+    }
+
+    private function optionHasContent(array $option): bool
+    {
+        if ($this->nullableTrim($option['option_text'] ?? null) !== null) {
+            return true;
+        }
+
+        if (! empty($option['option_image_upload'])) {
+            return true;
+        }
+
+        return is_string($option['option_image_path'] ?? null)
+            && $option['option_image_path'] !== ''
+            && empty($option['remove_option_image']);
+    }
+
+    private function nullableTrim(mixed $value): ?string
+    {
+        $text = trim((string) ($value ?? ''));
+
+        return $text === '' ? null : $text;
+    }
+
+    private function storeQuestionImage(Question $question, array $payload): ?string
+    {
+        $currentPath = is_string($question->question_image_path) && $question->question_image_path !== ''
+            ? $question->question_image_path
+            : null;
+
+        if (! empty($payload['question_image_upload'])) {
+            $this->deletePublicFile($currentPath);
+
+            return $payload['question_image_upload']->store('quiz-images/questions', 'public');
+        }
+
+        if (! empty($payload['remove_question_image'])) {
+            $this->deletePublicFile($currentPath);
+
+            return null;
+        }
+
+        return $currentPath;
+    }
+
+    private function storeOptionImage(QuestionOption $option, array $payload): ?string
+    {
+        $currentPath = is_string($option->option_image_path) && $option->option_image_path !== ''
+            ? $option->option_image_path
+            : null;
+
+        if (! empty($payload['option_image_upload'])) {
+            $this->deletePublicFile($currentPath);
+
+            return $payload['option_image_upload']->store('quiz-images/options', 'public');
+        }
+
+        if (! empty($payload['remove_option_image'])) {
+            $this->deletePublicFile($currentPath);
+
+            return null;
+        }
+
+        return $currentPath;
+    }
+
+    private function deleteRemovedQuestions(int $quizId, array $keepQuestionIds): void
+    {
+        $query = Question::query()
+            ->where('quiz_id', $quizId);
+
+        if ($keepQuestionIds !== []) {
+            $query->whereNotIn('id', $keepQuestionIds);
+        }
+
+        $questions = $query->get();
+
+        foreach ($questions as $question) {
+            $this->deletePublicFile($question->question_image_path);
+            $this->deleteOptions($question);
+            ShortAnswerKey::query()->where('question_id', $question->id)->delete();
+            $question->delete();
+        }
+    }
+
+    private function deleteOptions(Question $question): void
+    {
+        $options = QuestionOption::query()
+            ->where('question_id', $question->id)
+            ->get();
+
+        foreach ($options as $option) {
+            $this->deletePublicFile($option->option_image_path);
+            $option->delete();
+        }
+    }
+
+    private function deleteRemovedOptions(int $questionId, array $keepOptionIds): void
+    {
+        $query = QuestionOption::query()
+            ->where('question_id', $questionId);
+
+        if ($keepOptionIds !== []) {
+            $query->whereNotIn('id', $keepOptionIds);
+        }
+
+        $options = $query->get();
+
+        foreach ($options as $option) {
+            $this->deletePublicFile($option->option_image_path);
+            $option->delete();
+        }
+    }
+
+    private function deleteShortAnswerKeys(Question $question): void
+    {
+        ShortAnswerKey::query()->where('question_id', $question->id)->delete();
+    }
+
+    private function deletePublicFile(?string $path): void
+    {
+        if (! is_string($path) || $path === '') {
+            return;
+        }
+
+        Storage::disk('public')->delete($path);
     }
 
     public function render()

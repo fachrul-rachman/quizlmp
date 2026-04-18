@@ -8,6 +8,7 @@ use App\Models\QuestionOption;
 use App\Models\QuizAttempt;
 use App\Models\QuizLink;
 use App\Models\QuizResult;
+use App\Services\Discord\DiscordResultWebhookService;
 use App\Services\GradeService;
 use App\Services\Pdf\ResultPdfService;
 use App\Support\DeterministicShuffle;
@@ -37,9 +38,10 @@ class QuizWork extends Component
 
     public ?int $currentQuestionId = null;
     public ?string $currentQuestionText = null;
+    public ?string $currentQuestionImagePath = null;
     public ?string $currentQuestionType = null;
 
-    /** @var array<int, array{id:int,label:string,text:string,is_correct:bool}> */
+    /** @var array<int, array{id:int,label:string,text:string,image_path:?string,is_correct:bool}> */
     public array $currentOptions = [];
 
     public ?int $selectedOptionId = null;
@@ -388,6 +390,7 @@ class QuizWork extends Component
 
         $this->currentQuestionId = (int) $question->id;
         $this->currentQuestionText = (string) $question->question_text;
+        $this->currentQuestionImagePath = is_string($question->question_image_path) ? $question->question_image_path : null;
         $this->currentQuestionType = (string) $question->question_type;
 
         $answer = AttemptAnswer::query()
@@ -404,11 +407,12 @@ class QuizWork extends Component
                 ->where('question_id', $question->id)
                 ->whereNull('deleted_at')
                 ->orderBy('sort_order')
-                ->get(['id', 'option_text', 'sort_order']);
+                ->get(['id', 'option_text', 'option_image_path', 'sort_order']);
 
             $items = $options->map(fn ($o) => [
                 'id' => (int) $o->id,
                 'text' => (string) ($o->option_text ?? ''),
+                'image_path' => is_string($o->option_image_path) ? $o->option_image_path : null,
                 'sort_order' => (int) $o->sort_order,
             ])->all();
 
@@ -423,6 +427,7 @@ class QuizWork extends Component
                     'id' => (int) $it['id'],
                     'label' => $labels[$idx] ?? '',
                     'text' => (string) $it['text'],
+                    'image_path' => $it['image_path'],
                     'is_correct' => false,
                 ];
             }
@@ -613,6 +618,15 @@ class QuizWork extends Component
                 app(ResultPdfService::class)->generateForResultId($resultId);
             } catch (\Throwable $e) {
                 Log::error('result pdf generation threw', [
+                    'quiz_result_id' => $resultId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            try {
+                app(DiscordResultWebhookService::class)->sendForResultId($resultId);
+            } catch (\Throwable $e) {
+                Log::error('discord webhook send failed', [
                     'quiz_result_id' => $resultId,
                     'error' => $e->getMessage(),
                 ]);
