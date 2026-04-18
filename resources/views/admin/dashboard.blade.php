@@ -1,4 +1,5 @@
 <x-layouts.admin title="Dashboard">
+    @php($resultStatusLabel = fn (string $status): string => $status === 'auto_submitted' ? 'Selesai Otomatis' : 'Selesai')
     @if (session('success'))
         <div class="mb-4 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800 dark:border-green-900/50 dark:bg-green-950/30 dark:text-green-200">
             {{ session('success') }}
@@ -77,12 +78,12 @@
                                 <td class="px-4 py-2">{{ $row->quiz_title }}</td>
                                 <td class="px-4 py-2">{{ $row->participant_name }}</td>
                                 <td class="px-4 py-2">{{ $row->participant_applied_for }}</td>
-                                <td class="px-4 py-2">{{ number_format((float) $row->score_percentage, 2) }}</td>
+                                <td class="px-4 py-2">{{ number_format((float) $row->score_percentage, 2) }}%</td>
                                 <td class="px-4 py-2">{{ $row->grade_letter }} - {{ $row->grade_label }}</td>
                                 <td class="px-4 py-2">
-                                    {{ $row->result_status === 'auto_submitted' ? 'Auto Submitted' : 'Submitted' }}
+                                    {{ $resultStatusLabel((string) $row->result_status) }}
                                 </td>
-                                <td class="px-4 py-2">{{ $row->calculated_at }}</td>
+                                <td class="px-4 py-2">{{ \Illuminate\Support\Carbon::parse($row->calculated_at)->format('d M Y H:i:s') }}</td>
                                 <td class="px-4 py-2">
                                     <a href="{{ url('/admin/results/'.$row->id) }}" class="text-zinc-900 underline underline-offset-2 hover:text-zinc-700 dark:text-zinc-100 dark:hover:text-zinc-300">Detail</a>
                                 </td>

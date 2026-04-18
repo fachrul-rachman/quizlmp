@@ -1,4 +1,20 @@
 <x-layouts.admin title="Daftar Link">
+    @php($linkStatusLabel = fn (string $status): string => match ($status) {
+        'unused' => 'Belum Dibuka',
+        'opened' => 'Sudah Dibuka',
+        'in_progress' => 'Sedang Dikerjakan',
+        'submitted' => 'Selesai',
+        'expired' => 'Kedaluwarsa',
+        default => $status,
+    })
+    @php($linkStatusClass = fn (string $status): string => match ($status) {
+        'unused' => 'bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200',
+        'opened' => 'bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-200',
+        'in_progress' => 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200',
+        'submitted' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200',
+        'expired' => 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200',
+        default => 'bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200',
+    })
     @if (session('success'))
         <div class="mb-4 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800 dark:border-green-900/50 dark:bg-green-950/30 dark:text-green-200">
             {{ session('success') }}
@@ -30,11 +46,11 @@
             <label class="block text-sm font-medium mb-1">Status</label>
             <select name="status" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950">
                 <option value="all" @selected($status === 'all')>Semua</option>
-                <option value="unused" @selected($status === 'unused')>unused</option>
-                <option value="opened" @selected($status === 'opened')>opened</option>
-                <option value="in_progress" @selected($status === 'in_progress')>in_progress</option>
-                <option value="submitted" @selected($status === 'submitted')>submitted</option>
-                <option value="expired" @selected($status === 'expired')>expired</option>
+                <option value="unused" @selected($status === 'unused')>Belum Dibuka</option>
+                <option value="opened" @selected($status === 'opened')>Sudah Dibuka</option>
+                <option value="in_progress" @selected($status === 'in_progress')>Sedang Dikerjakan</option>
+                <option value="submitted" @selected($status === 'submitted')>Selesai</option>
+                <option value="expired" @selected($status === 'expired')>Kedaluwarsa</option>
             </select>
         </div>
 
@@ -72,10 +88,14 @@
                             <tr>
                                 <td class="px-4 py-2">{{ $link->quiz?->title ?? '-' }}</td>
                                 <td class="px-4 py-2 font-mono">{{ $link->token }}</td>
-                                <td class="px-4 py-2">{{ $link->status }}</td>
-                                <td class="px-4 py-2">{{ $link->opened_at }}</td>
-                                <td class="px-4 py-2">{{ $link->started_at }}</td>
-                                <td class="px-4 py-2">{{ $link->submitted_at }}</td>
+                                <td class="px-4 py-2">
+                                    <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium {{ $linkStatusClass((string) $link->status) }}">
+                                        {{ $linkStatusLabel((string) $link->status) }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-2">{{ optional($link->opened_at)->format('d M Y H:i:s') ?: '-' }}</td>
+                                <td class="px-4 py-2">{{ optional($link->started_at)->format('d M Y H:i:s') ?: '-' }}</td>
+                                <td class="px-4 py-2">{{ optional($link->submitted_at)->format('d M Y H:i:s') ?: '-' }}</td>
                                 <td class="px-4 py-2">
                                     <div class="flex items-center gap-3">
                                         <button type="button" class="underline underline-offset-2" onclick="copyText('{{ $url }}')">Copy Link</button>

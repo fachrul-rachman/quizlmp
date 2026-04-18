@@ -1,4 +1,14 @@
 <x-layouts.admin title="Detail Hasil">
+    @php($resultStatusLabel = fn (string $status): string => $status === 'auto_submitted' ? 'Selesai Otomatis' : 'Selesai')
+    @php($resultStatusClass = fn (string $status): string => $status === 'auto_submitted'
+        ? 'bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-200'
+        : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200')
+    @php($answerStatusLabel = fn (string $status): string => match ($status) {
+        'correct' => 'Benar',
+        'wrong' => 'Salah',
+        'unanswered' => 'Belum Dijawab',
+        default => $status,
+    })
     <div class="flex items-center justify-between gap-3 mb-4">
         <div class="text-lg font-semibold">Detail Hasil</div>
         <a href="{{ url('/admin/results') }}" class="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800/40">
@@ -24,7 +34,11 @@
                     </div>
                     <div>
                         <div class="text-sm text-zinc-500 dark:text-zinc-400">Status</div>
-                        <div class="mt-1 font-semibold">{{ $result->result_status }}</div>
+                        <div class="mt-1">
+                            <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium {{ $resultStatusClass((string) $result->result_status) }}">
+                                {{ $resultStatusLabel((string) $result->result_status) }}
+                            </span>
+                        </div>
                     </div>
                     <div>
                         <div class="text-sm text-zinc-500 dark:text-zinc-400">Mulai</div>
@@ -48,7 +62,7 @@
                                     @if ($row['status'] === 'correct') bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200
                                     @elseif ($row['status'] === 'wrong') bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200
                                     @else bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 @endif">
-                                    {{ $row['status'] }}
+                                    {{ $answerStatusLabel((string) $row['status']) }}
                                 </span>
                             </div>
 

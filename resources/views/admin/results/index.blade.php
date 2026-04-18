@@ -1,4 +1,8 @@
 <x-layouts.admin title="Daftar Hasil">
+    @php($resultStatusLabel = fn (string $status): string => $status === 'auto_submitted' ? 'Selesai Otomatis' : 'Selesai')
+    @php($resultStatusClass = fn (string $status): string => $status === 'auto_submitted'
+        ? 'bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-200'
+        : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200')
     <div class="flex items-center justify-between gap-3 mb-4">
         <div class="text-lg font-semibold">Daftar Hasil</div>
     </div>
@@ -21,8 +25,8 @@
             <label class="block text-sm font-medium mb-1">Status</label>
             <select name="status" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950">
                 <option value="all" @selected($status === 'all')>Semua</option>
-                <option value="submitted" @selected($status === 'submitted')>submitted</option>
-                <option value="auto_submitted" @selected($status === 'auto_submitted')>auto_submitted</option>
+                <option value="submitted" @selected($status === 'submitted')>Selesai</option>
+                <option value="auto_submitted" @selected($status === 'auto_submitted')>Selesai Otomatis</option>
             </select>
         </div>
         <div class="sm:col-span-4 flex gap-2">
@@ -72,8 +76,8 @@
                                     </div>
                                 </td>
                                 <td class="px-4 py-3 align-top">
-                                    <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium {{ $result->result_status === 'submitted' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200' : 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200' }}">
-                                        {{ $result->result_status }}
+                                    <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium {{ $resultStatusClass((string) $result->result_status) }}">
+                                        {{ $resultStatusLabel((string) $result->result_status) }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 align-top">

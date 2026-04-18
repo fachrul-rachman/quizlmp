@@ -107,7 +107,7 @@ class QuizStart extends Component
             ],
         );
 
-        session()->flash('success', 'Data berhasil disimpan.');
+        session()->flash('success', 'Identitas berhasil disimpan. Test belum dimulai.');
     }
 
     public function startTest(): void

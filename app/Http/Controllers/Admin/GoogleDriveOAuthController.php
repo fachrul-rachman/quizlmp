@@ -18,7 +18,7 @@ class GoogleDriveOAuthController extends Controller
         $redirectUri = (string) env('GOOGLE_DRIVE_OAUTH_REDIRECT_URI', '');
 
         if ($clientId === '' || $redirectUri === '') {
-            return redirect('/admin/dashboard')->with('error', 'Google Drive OAuth belum dikonfigurasi.');
+            return redirect('/admin/dashboard')->with('error', 'Google Drive OAuth belum dikonfigurasi. Periksa client ID dan redirect URI di .env.');
         }
 
         $state = Str::random(40);
@@ -44,12 +44,12 @@ class GoogleDriveOAuthController extends Controller
         $incomingState = (string) $request->query('state', '');
 
         if ($expectedState === '' || ! hash_equals($expectedState, $incomingState)) {
-            return redirect('/admin/dashboard')->with('error', 'State OAuth Google Drive tidak valid.');
+            return redirect('/admin/dashboard')->with('error', 'State OAuth Google Drive tidak valid. Ulangi proses connect dari dashboard.');
         }
 
         $code = (string) $request->query('code', '');
         if ($code === '') {
-            return redirect('/admin/dashboard')->with('error', 'Google Drive tidak mengirim authorization code.');
+            return redirect('/admin/dashboard')->with('error', 'Google Drive tidak mengirim authorization code. Ulangi proses connect lalu pilih akun yang benar.');
         }
 
         $clientId = (string) env('GOOGLE_DRIVE_OAUTH_CLIENT_ID', '');
@@ -58,7 +58,7 @@ class GoogleDriveOAuthController extends Controller
         $tokenUri = (string) env('GOOGLE_DRIVE_OAUTH_TOKEN_URI', 'https://oauth2.googleapis.com/token');
 
         if ($clientId === '' || $clientSecret === '' || $redirectUri === '') {
-            return redirect('/admin/dashboard')->with('error', 'Google Drive OAuth belum lengkap di .env.');
+            return redirect('/admin/dashboard')->with('error', 'Konfigurasi Google Drive OAuth di .env belum lengkap. Periksa client ID, client secret, dan redirect URI.');
         }
 
         try {
@@ -74,7 +74,7 @@ class GoogleDriveOAuthController extends Controller
         } catch (\Throwable $e) {
             Log::error('google drive oauth token exchange failed', ['error' => $e->getMessage()]);
 
-            return redirect('/admin/dashboard')->with('error', 'Gagal menukar authorization code Google Drive.');
+            return redirect('/admin/dashboard')->with('error', 'Gagal menukar authorization code Google Drive. Periksa koneksi dan redirect URI, lalu coba lagi.');
         }
 
         if (! $resp->successful()) {
@@ -83,7 +83,7 @@ class GoogleDriveOAuthController extends Controller
                 'body' => $resp->body(),
             ]);
 
-            return redirect('/admin/dashboard')->with('error', 'Google Drive menolak proses OAuth.');
+            return redirect('/admin/dashboard')->with('error', 'Google Drive menolak proses OAuth. Periksa client app di Google Console lalu coba connect ulang.');
         }
 
         $accessToken = (string) ($resp->json('access_token') ?? '');

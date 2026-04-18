@@ -1,7 +1,7 @@
 <div class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950" @if($state==='work') wire:poll.1s="tick" @endif>
     @if ($state === 'invalid')
         <h1 class="text-xl font-semibold">Link Quiz Tidak Valid</h1>
-        <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">Link yang Anda buka tidak ditemukan atau tidak tersedia.</div>
+        <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">Link yang Anda buka tidak ditemukan atau sudah tidak berlaku. Periksa kembali link dari admin.</div>
     @elseif ($state === 'submitted')
         <h1 class="text-xl font-semibold">Link Quiz Tidak Bisa Digunakan</h1>
         <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">Quiz ini sudah selesai dikerjakan.</div>
@@ -10,9 +10,10 @@
         <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">Waktu pengerjaan quiz ini sudah habis.</div>
     @elseif ($state === 'unavailable')
         <h1 class="text-xl font-semibold">Quiz tidak tersedia.</h1>
+        <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">Quiz sedang nonaktif atau link ini tidak dapat dipakai lagi.</div>
     @elseif ($state === 'no_questions')
-        <h1 class="text-xl font-semibold">Quiz tidak tersedia.</h1>
-        <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">Soal tidak ditemukan.</div>
+        <h1 class="text-xl font-semibold">Soal belum tersedia.</h1>
+        <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">Data soal tidak ditemukan. Hubungi admin untuk memeriksa quiz ini.</div>
     @elseif ($state === 'work')
         <div class="flex items-start justify-between gap-3">
             <div>
@@ -23,8 +24,13 @@
             </div>
 
             <div class="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-semibold dark:border-zinc-800 dark:bg-zinc-900/40">
-                Sisa Waktu: {{ gmdate('i:s', $secondsRemaining) }}
+                Sisa Waktu:
+                {{ $secondsRemaining >= 3600 ? gmdate('H:i:s', $secondsRemaining) : gmdate('i:s', $secondsRemaining) }}
             </div>
+        </div>
+
+        <div class="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-100">
+            Jawaban tersimpan saat Anda memilih opsi atau mengetik. Tombol submit akan aktif setelah semua soal terjawab.
         </div>
 
         <div class="mt-6">
@@ -102,7 +108,7 @@
             <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
                 <div class="w-full max-w-md rounded-lg border border-zinc-200 bg-white p-4 shadow-lg dark:border-zinc-800 dark:bg-zinc-950">
                     <div class="text-sm font-semibold">Konfirmasi Submit</div>
-                    <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">Jawaban akan dikirim final.</div>
+                    <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">Jawaban akan dikirim final dan tidak bisa diubah lagi.</div>
                     <div class="mt-4 flex items-center justify-end gap-2">
                         <button type="button" wire:click="cancelSubmit" class="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800/40">
                             Batal

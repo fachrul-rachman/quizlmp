@@ -8,6 +8,11 @@
     </head>
     <body class="min-h-screen bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">
         @php($user = auth()->user())
+        @php($navLinkClass = function (bool $active): string {
+            return $active
+                ? 'block rounded-md px-3 py-2 text-sm font-semibold bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+                : 'block rounded-md px-3 py-2 text-sm hover:bg-zinc-200/70 dark:hover:bg-zinc-800/60';
+        })
         <div class="min-h-screen lg:flex">
             <aside class="hidden lg:block lg:w-64 lg:flex-none border-e border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950">
                 <div class="px-4 py-4 border-b border-zinc-200 dark:border-zinc-800">
@@ -18,12 +23,12 @@
                 </div>
 
                 <nav class="p-3 space-y-1">
-                    <a href="{{ url('/admin/dashboard') }}" class="block rounded-md px-3 py-2 text-sm hover:bg-zinc-200/70 dark:hover:bg-zinc-800/60">Dashboard</a>
-                    <a href="{{ url('/admin/quizzes') }}" class="block rounded-md px-3 py-2 text-sm hover:bg-zinc-200/70 dark:hover:bg-zinc-800/60">Quiz</a>
-                    <a href="{{ url('/admin/generate-link') }}" class="block rounded-md px-3 py-2 text-sm hover:bg-zinc-200/70 dark:hover:bg-zinc-800/60">Generate Link</a>
-                    <a href="{{ url('/admin/results') }}" class="block rounded-md px-3 py-2 text-sm hover:bg-zinc-200/70 dark:hover:bg-zinc-800/60">Hasil</a>
+                    <a href="{{ url('/admin/dashboard') }}" class="{{ $navLinkClass(request()->routeIs('admin.dashboard')) }}">Dashboard</a>
+                    <a href="{{ url('/admin/quizzes') }}" class="{{ $navLinkClass(request()->routeIs('admin.quizzes.*')) }}">Quiz</a>
+                    <a href="{{ url('/admin/generate-link') }}" class="{{ $navLinkClass(request()->routeIs('admin.links.*')) }}">Generate Link</a>
+                    <a href="{{ url('/admin/results') }}" class="{{ $navLinkClass(request()->routeIs('admin.results.*')) }}">Hasil</a>
                     @if(($user?->role ?? null) === 'super_admin')
-                        <a href="{{ url('/admin/users') }}" class="block rounded-md px-3 py-2 text-sm hover:bg-zinc-200/70 dark:hover:bg-zinc-800/60">Admin Users</a>
+                        <a href="{{ url('/admin/users') }}" class="{{ $navLinkClass(request()->routeIs('admin.users.*')) }}">Admin Users</a>
                     @endif
                     <form method="POST" action="{{ url('/logout') }}" class="pt-2">
                         @csrf
@@ -40,12 +45,12 @@
                                 Menu
                             </summary>
                             <div class="mt-2 rounded-md border border-zinc-200 bg-white p-2 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-                                <a href="{{ url('/admin/dashboard') }}" class="block rounded-md px-3 py-2 text-sm hover:bg-zinc-200/70 dark:hover:bg-zinc-800/60">Dashboard</a>
-                                <a href="{{ url('/admin/quizzes') }}" class="block rounded-md px-3 py-2 text-sm hover:bg-zinc-200/70 dark:hover:bg-zinc-800/60">Quiz</a>
-                                <a href="{{ url('/admin/generate-link') }}" class="block rounded-md px-3 py-2 text-sm hover:bg-zinc-200/70 dark:hover:bg-zinc-800/60">Generate Link</a>
-                                <a href="{{ url('/admin/results') }}" class="block rounded-md px-3 py-2 text-sm hover:bg-zinc-200/70 dark:hover:bg-zinc-800/60">Hasil</a>
+                                <a href="{{ url('/admin/dashboard') }}" class="{{ $navLinkClass(request()->routeIs('admin.dashboard')) }}">Dashboard</a>
+                                <a href="{{ url('/admin/quizzes') }}" class="{{ $navLinkClass(request()->routeIs('admin.quizzes.*')) }}">Quiz</a>
+                                <a href="{{ url('/admin/generate-link') }}" class="{{ $navLinkClass(request()->routeIs('admin.links.*')) }}">Generate Link</a>
+                                <a href="{{ url('/admin/results') }}" class="{{ $navLinkClass(request()->routeIs('admin.results.*')) }}">Hasil</a>
                                 @if(($user?->role ?? null) === 'super_admin')
-                                    <a href="{{ url('/admin/users') }}" class="block rounded-md px-3 py-2 text-sm hover:bg-zinc-200/70 dark:hover:bg-zinc-800/60">Admin Users</a>
+                                    <a href="{{ url('/admin/users') }}" class="{{ $navLinkClass(request()->routeIs('admin.users.*')) }}">Admin Users</a>
                                 @endif
                                 <form method="POST" action="{{ url('/logout') }}" class="pt-1">
                                     @csrf
