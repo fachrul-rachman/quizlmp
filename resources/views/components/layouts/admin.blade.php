@@ -25,6 +25,7 @@
                 <nav class="p-3 space-y-1">
                     <a href="{{ url('/admin/dashboard') }}" class="{{ $navLinkClass(request()->routeIs('admin.dashboard')) }}">Dashboard</a>
                     <a href="{{ url('/admin/quizzes') }}" class="{{ $navLinkClass(request()->routeIs('admin.quizzes.*')) }}">Quiz</a>
+                    <a href="{{ url('/admin/quiz-categories') }}" class="{{ $navLinkClass(request()->routeIs('admin.quiz-categories.*')) }}">Kategori Quiz</a>
                     <a href="{{ url('/admin/generate-link') }}" class="{{ $navLinkClass(request()->routeIs('admin.links.*')) }}">Generate Link</a>
                     <a href="{{ url('/admin/results') }}" class="{{ $navLinkClass(request()->routeIs('admin.results.*')) }}">Hasil</a>
                     @if(($user?->role ?? null) === 'super_admin')
@@ -47,6 +48,7 @@
                             <div class="mt-2 rounded-md border border-zinc-200 bg-white p-2 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                                 <a href="{{ url('/admin/dashboard') }}" class="{{ $navLinkClass(request()->routeIs('admin.dashboard')) }}">Dashboard</a>
                                 <a href="{{ url('/admin/quizzes') }}" class="{{ $navLinkClass(request()->routeIs('admin.quizzes.*')) }}">Quiz</a>
+                                <a href="{{ url('/admin/quiz-categories') }}" class="{{ $navLinkClass(request()->routeIs('admin.quiz-categories.*')) }}">Kategori Quiz</a>
                                 <a href="{{ url('/admin/generate-link') }}" class="{{ $navLinkClass(request()->routeIs('admin.links.*')) }}">Generate Link</a>
                                 <a href="{{ url('/admin/results') }}" class="{{ $navLinkClass(request()->routeIs('admin.results.*')) }}">Hasil</a>
                                 @if(($user?->role ?? null) === 'super_admin')

@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Models\Question;
 use App\Models\QuestionOption;
 use App\Models\Quiz;
+use App\Models\QuizCategory;
 use App\Models\ShortAnswerKey;
 use App\Services\QuizQuestionImportParser;
 use Illuminate\Support\Facades\DB;
@@ -18,12 +19,14 @@ class QuizBuilder extends Component
     use WithFileUploads;
 
     public ?int $quizId = null;
+    public string $categoryId = '';
 
     public string $title = '';
     public ?string $description = null;
     public int $durationMinutes = 1;
     public bool $shuffleQuestions = false;
     public bool $shuffleOptions = false;
+    public bool $instantFeedbackEnabled = false;
     public bool $isActive = true;
 
     /**
@@ -51,9 +54,11 @@ class QuizBuilder extends Component
 
         $this->title = $quiz->title;
         $this->description = $quiz->description;
+        $this->categoryId = $quiz->category_id !== null ? (string) $quiz->category_id : '';
         $this->durationMinutes = (int) $quiz->duration_minutes;
         $this->shuffleQuestions = (bool) $quiz->shuffle_questions;
         $this->shuffleOptions = (bool) $quiz->shuffle_options;
+        $this->instantFeedbackEnabled = (bool) $quiz->instant_feedback_enabled;
         $this->isActive = (bool) $quiz->is_active;
 
         $this->questions = $quiz->questions->map(function (Question $question) {
@@ -180,9 +185,11 @@ class QuizBuilder extends Component
             $quiz->fill([
                 'title' => $this->title,
                 'description' => $this->description,
+                'category_id' => $this->categoryId !== '' ? (int) $this->categoryId : null,
                 'duration_minutes' => $this->durationMinutes,
                 'shuffle_questions' => $this->shuffleQuestions,
                 'shuffle_options' => $this->shuffleOptions,
+                'instant_feedback_enabled' => $this->instantFeedbackEnabled,
                 'is_active' => $this->isActive,
             ]);
 
@@ -305,16 +312,20 @@ class QuizBuilder extends Component
         $this->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'categoryId' => ['nullable', 'integer', 'exists:quiz_categories,id'],
             'durationMinutes' => ['required', 'integer', 'min:1'],
             'shuffleQuestions' => ['boolean'],
             'shuffleOptions' => ['boolean'],
+            'instantFeedbackEnabled' => ['boolean'],
             'isActive' => ['boolean'],
         ], [], [
             'title' => 'Nama quiz',
             'description' => 'Deskripsi',
+            'categoryId' => 'Kategori',
             'durationMinutes' => 'Durasi',
             'shuffleQuestions' => 'Shuffle Soal',
             'shuffleOptions' => 'Shuffle Opsi',
+            'instantFeedbackEnabled' => 'Tampilkan Jawaban Benar',
             'isActive' => 'Status Aktif',
         ]);
     }
@@ -351,6 +362,12 @@ class QuizBuilder extends Component
             if (! in_array($type, ['multiple_choice', 'short_answer'], true)) {
                 throw ValidationException::withMessages([
                     "questions.$qi.question_type" => 'Jenis jawaban tidak valid.',
+                ]);
+            }
+
+            if ($this->instantFeedbackEnabled && $type !== 'multiple_choice') {
+                throw ValidationException::withMessages([
+                    "questions.$qi.question_type" => 'Mode tampilkan jawaban benar hanya bisa dipakai untuk quiz multiple choice.',
                 ]);
             }
 
@@ -652,6 +669,10 @@ class QuizBuilder extends Component
 
     public function render()
     {
-        return view('livewire.admin.quiz-builder');
+        return view('livewire.admin.quiz-builder', [
+            'categories' => QuizCategory::query()
+                ->orderBy('name')
+                ->get(['id', 'name']),
+        ]);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Quiz;
+use App\Models\QuizCategory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,9 +16,10 @@ class AdminQuizController extends Controller
     {
         $search = trim((string) $request->query('search', ''));
         $status = (string) $request->query('status', 'all');
+        $categoryId = (string) $request->query('category_id', 'all');
 
         $query = Quiz::query()
-            ->with('creator:id,name')
+            ->with(['creator:id,name', 'category:id,name'])
             ->addSelect([
                 'active_questions_count' => DB::table('questions')
                     ->selectRaw('count(*)')
@@ -37,15 +39,27 @@ class AdminQuizController extends Controller
             $query->where('is_active', false);
         }
 
+        if ($categoryId === 'default') {
+            $query->whereNull('category_id');
+        } elseif ($categoryId !== 'all' && ctype_digit($categoryId)) {
+            $query->where('category_id', (int) $categoryId);
+        }
+
         $quizzes = $query
             ->orderByDesc('id')
             ->paginate(15)
             ->withQueryString();
 
+        $categories = QuizCategory::query()
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return view('admin.quizzes.index', [
             'quizzes' => $quizzes,
             'search' => $search,
             'status' => $status,
+            'categoryId' => $categoryId,
+            'categories' => $categories,
         ]);
     }
 
@@ -57,6 +71,7 @@ class AdminQuizController extends Controller
     public function show(Quiz $quiz): View
     {
         $quiz->load([
+            'category:id,name',
             'creator:id,name',
             'updater:id,name',
             'questions' => fn ($q) => $q->orderBy('order_number'),

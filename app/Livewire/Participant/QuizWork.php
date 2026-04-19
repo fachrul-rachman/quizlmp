@@ -30,6 +30,7 @@ class QuizWork extends Component
 
     public int $attemptId = 0;
     public int $quizId = 0;
+    public bool $instantFeedbackEnabled = false;
 
     public int $step = 1;
 
@@ -45,7 +46,11 @@ class QuizWork extends Component
     public array $currentOptions = [];
 
     public ?int $selectedOptionId = null;
+    public ?int $lockedSelectedOptionId = null;
     public string $shortAnswerText = '';
+    public ?bool $currentAnswerIsCorrect = null;
+    public ?int $currentCorrectOptionId = null;
+    public bool $currentAnswerLocked = false;
 
     public int $answeredCount = 0;
     public int $totalQuestions = 0;
@@ -61,7 +66,7 @@ class QuizWork extends Component
         $this->token = $token;
 
         $link = QuizLink::query()
-            ->with(['quiz:id,title,is_active,shuffle_questions,shuffle_options', 'attempt'])
+            ->with(['quiz:id,title,is_active,shuffle_questions,shuffle_options,instant_feedback_enabled', 'attempt'])
             ->where('token', $token)
             ->first();
 
@@ -96,6 +101,7 @@ class QuizWork extends Component
 
         $this->attemptId = (int) $link->attempt->id;
         $this->quizId = (int) $link->attempt->quiz_id;
+        $this->instantFeedbackEnabled = (bool) $link->quiz->instant_feedback_enabled;
 
         $this->secondsRemaining = $this->calculateSecondsRemaining($link->attempt);
         if ($this->secondsRemaining <= 0) {
@@ -137,6 +143,16 @@ class QuizWork extends Component
     public function updatedSelectedOptionId(): void
     {
         if ($this->state !== 'work') {
+            return;
+        }
+
+        if ($this->instantFeedbackEnabled) {
+            if ($this->currentAnswerLocked) {
+                $this->selectedOptionId = $this->lockedSelectedOptionId;
+                return;
+            }
+
+            $this->lockCurrentMultipleChoiceAnswer();
             return;
         }
 
@@ -221,7 +237,7 @@ class QuizWork extends Component
     private function reloadForStep(): void
     {
         $link = QuizLink::query()
-            ->with(['quiz:id,shuffle_options', 'attempt'])
+            ->with(['quiz:id,shuffle_options,instant_feedback_enabled', 'attempt'])
             ->where('token', $this->token)
             ->first();
 
@@ -238,6 +254,7 @@ class QuizWork extends Component
 
         $this->attemptId = (int) $link->attempt->id;
         $this->quizId = (int) $link->attempt->quiz_id;
+        $this->instantFeedbackEnabled = (bool) $link->quiz->instant_feedback_enabled;
 
         $this->loadStep($this->attemptId, $this->quizId, (bool) $link->quiz->shuffle_options, (int) $link->quiz->id);
         $this->refreshProgress();
@@ -264,6 +281,10 @@ class QuizWork extends Component
         }
 
         if ($this->currentQuestionType === 'multiple_choice') {
+            if ($this->instantFeedbackEnabled && $this->currentAnswerLocked) {
+                return;
+            }
+
             $selected = $this->selectedOptionId;
             AttemptAnswer::updateOrCreate(
                 ['quiz_attempt_id' => $link->attempt->id, 'question_id' => $this->currentQuestionId],
@@ -392,6 +413,10 @@ class QuizWork extends Component
         $this->currentQuestionText = (string) $question->question_text;
         $this->currentQuestionImagePath = is_string($question->question_image_path) ? $question->question_image_path : null;
         $this->currentQuestionType = (string) $question->question_type;
+        $this->currentAnswerIsCorrect = null;
+        $this->currentCorrectOptionId = null;
+        $this->currentAnswerLocked = false;
+        $this->lockedSelectedOptionId = null;
 
         $answer = AttemptAnswer::query()
             ->where('quiz_attempt_id', $attemptId)
@@ -407,13 +432,14 @@ class QuizWork extends Component
                 ->where('question_id', $question->id)
                 ->whereNull('deleted_at')
                 ->orderBy('sort_order')
-                ->get(['id', 'option_text', 'option_image_path', 'sort_order']);
+                ->get(['id', 'option_text', 'option_image_path', 'sort_order', 'is_correct']);
 
             $items = $options->map(fn ($o) => [
                 'id' => (int) $o->id,
                 'text' => (string) ($o->option_text ?? ''),
                 'image_path' => is_string($o->option_image_path) ? $o->option_image_path : null,
                 'sort_order' => (int) $o->sort_order,
+                'is_correct' => (bool) $o->is_correct,
             ])->all();
 
             if ($shuffleOptions && count($items) > 1) {
@@ -428,10 +454,63 @@ class QuizWork extends Component
                     'label' => $labels[$idx] ?? '',
                     'text' => (string) $it['text'],
                     'image_path' => $it['image_path'],
-                    'is_correct' => false,
+                    'is_correct' => (bool) $it['is_correct'],
                 ];
             }
+
+            $this->currentCorrectOptionId = collect($this->currentOptions)
+                ->firstWhere('is_correct', true)['id'] ?? null;
+
+            if ($this->instantFeedbackEnabled && $answer && $answer->selected_option_id) {
+                $this->currentAnswerLocked = true;
+                $this->currentAnswerIsCorrect = (bool) $answer->is_correct;
+                $this->lockedSelectedOptionId = (int) $answer->selected_option_id;
+            }
         }
+    }
+
+    private function lockCurrentMultipleChoiceAnswer(): void
+    {
+        if (! $this->instantFeedbackEnabled || $this->currentQuestionType !== 'multiple_choice' || ! $this->currentQuestionId) {
+            return;
+        }
+
+        if (! $this->selectedOptionId || $this->currentAnswerLocked) {
+            return;
+        }
+
+        $link = QuizLink::query()
+            ->with('attempt')
+            ->where('token', $this->token)
+            ->first();
+
+        if (! $link || ! $link->attempt || $link->attempt->status !== 'in_progress') {
+            return;
+        }
+
+        $this->secondsRemaining = $this->calculateSecondsRemaining($link->attempt);
+        if ($this->secondsRemaining <= 0) {
+            return;
+        }
+
+        $selectedOptionId = (int) $this->selectedOptionId;
+        $correctOptionId = (int) ($this->currentCorrectOptionId ?? 0);
+        $isCorrect = $selectedOptionId !== 0 && $selectedOptionId === $correctOptionId;
+
+        AttemptAnswer::updateOrCreate(
+            ['quiz_attempt_id' => $link->attempt->id, 'question_id' => $this->currentQuestionId],
+            [
+                'selected_option_id' => $selectedOptionId,
+                'answer_text' => null,
+                'is_correct' => $isCorrect,
+                'answered_at' => now(),
+            ],
+        );
+
+        $this->currentAnswerLocked = true;
+        $this->currentAnswerIsCorrect = $isCorrect;
+        $this->lockedSelectedOptionId = $selectedOptionId;
+        $this->refreshProgress();
     }
 
     private function finalizeAutoIfNeeded(): void

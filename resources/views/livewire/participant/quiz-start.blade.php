@@ -26,6 +26,9 @@
             <div class="mt-1">Timer mulai saat Anda menekan tombol <span class="font-semibold">Mulai Test</span>.</div>
             <div class="mt-1">Identitas bisa disimpan lebih dulu, tetapi test belum berjalan sampai tombol mulai ditekan.</div>
             <div class="mt-1">Pastikan koneksi stabil dan jawab semua soal agar tombol submit aktif.</div>
+            @if ($instantFeedbackEnabled)
+                <div class="mt-1">Mode jawaban instan aktif: setiap soal pilihan ganda hanya bisa dijawab satu kali dan hasil benar atau salah langsung terlihat.</div>
+            @endif
         </div>
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">

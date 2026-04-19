@@ -29,9 +29,15 @@
             </div>
         </div>
 
-        <div class="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-100">
-            Jawaban tersimpan saat Anda memilih opsi atau mengetik. Tombol submit akan aktif setelah semua soal terjawab.
-        </div>
+        @if ($instantFeedbackEnabled)
+            <div class="mt-4 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/20 dark:text-sky-100">
+                Setiap soal pilihan ganda hanya bisa dijawab satu kali. Setelah Anda memilih opsi, jawaban langsung terkunci dan hasil benar atau salah langsung ditampilkan.
+            </div>
+        @else
+            <div class="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-100">
+                Jawaban tersimpan saat Anda memilih opsi atau mengetik. Tombol submit akan aktif setelah semua soal terjawab.
+            </div>
+        @endif
 
         <div class="mt-6">
             <div class="flex items-center justify-between gap-3">
@@ -61,16 +67,40 @@
                 @if ($currentQuestionType === 'multiple_choice')
                     <div class="mt-4 space-y-2">
                         @foreach ($currentOptions as $opt)
-                            <label class="flex items-start gap-3 rounded-md border border-zinc-200 p-3 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900/30">
+                            @php
+                                $isSelected = $selectedOptionId === $opt['id'];
+                                $isCorrectOption = $instantFeedbackEnabled && !empty($opt['is_correct']);
+                                $showLockedState = $instantFeedbackEnabled && $currentAnswerLocked;
+                                $optionClass = 'border-zinc-200 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900/30';
+
+                                if ($showLockedState) {
+                                    if ($isCorrectOption) {
+                                        $optionClass = 'border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-100';
+                                    } elseif ($isSelected && $currentAnswerIsCorrect === false) {
+                                        $optionClass = 'border-red-300 bg-red-50 text-red-950 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-100';
+                                    }
+                                } elseif ($isSelected) {
+                                    $optionClass = 'border-sky-300 bg-sky-50 dark:border-sky-900/50 dark:bg-sky-950/20';
+                                }
+                            @endphp
+                            <label class="flex items-start gap-3 rounded-md border p-3 {{ $optionClass }}">
                                 <input
                                     type="radio"
                                     name="selected_option"
                                     value="{{ $opt['id'] }}"
                                     class="mt-1"
                                     wire:model="selectedOptionId"
+                                    @disabled($instantFeedbackEnabled && $currentAnswerLocked)
                                 />
                                 <div class="min-w-0">
-                                    <div class="text-sm font-semibold">{{ $opt['label'] }}</div>
+                                    <div class="flex items-center gap-2 text-sm font-semibold">
+                                        <span>{{ $opt['label'] }}</span>
+                                        @if ($instantFeedbackEnabled && $currentAnswerLocked && !empty($opt['is_correct']))
+                                            <span class="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">Benar</span>
+                                        @elseif ($instantFeedbackEnabled && $currentAnswerLocked && $isSelected && $currentAnswerIsCorrect === false)
+                                            <span class="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-950/40 dark:text-red-200">Pilihan Anda</span>
+                                        @endif
+                                    </div>
                                     @if (filled($opt['text']))
                                         <div class="text-sm text-zinc-700 dark:text-zinc-200 whitespace-pre-line">{{ $opt['text'] }}</div>
                                     @endif
@@ -83,6 +113,11 @@
                             </label>
                         @endforeach
                     </div>
+                    @if ($instantFeedbackEnabled && $currentAnswerLocked)
+                        <div class="mt-3 text-sm font-medium {{ $currentAnswerIsCorrect ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300' }}">
+                            {{ $currentAnswerIsCorrect ? 'Jawaban Anda benar.' : 'Jawaban Anda salah. Opsi yang benar ditandai hijau.' }}
+                        </div>
+                    @endif
                 @else
                     <div class="mt-4">
                         <label class="block text-sm font-medium mb-1">Jawaban</label>

@@ -24,6 +24,10 @@
                 <div class="mt-1 font-semibold">{{ $quiz->title }}</div>
             </div>
             <div>
+                <div class="text-sm text-zinc-500 dark:text-zinc-400">Kategori</div>
+                <div class="mt-1 font-semibold">{{ $quiz->category?->name ?? 'Folder Utama' }}</div>
+            </div>
+            <div>
                 <div class="text-sm text-zinc-500 dark:text-zinc-400">Durasi</div>
                 <div class="mt-1 font-semibold">{{ $quiz->duration_minutes }} menit</div>
             </div>
@@ -38,6 +42,10 @@
             <div>
                 <div class="text-sm text-zinc-500 dark:text-zinc-400">Shuffle Opsi</div>
                 <div class="mt-1 font-semibold">{{ $quiz->shuffle_options ? 'Ya' : 'Tidak' }}</div>
+            </div>
+            <div>
+                <div class="text-sm text-zinc-500 dark:text-zinc-400">Tampilkan Jawaban Benar</div>
+                <div class="mt-1 font-semibold">{{ $quiz->instant_feedback_enabled ? 'Ya' : 'Tidak' }}</div>
             </div>
             <div>
                 <div class="text-sm text-zinc-500 dark:text-zinc-400">Status</div>

@@ -14,9 +14,11 @@ class Quiz extends Model
     protected $fillable = [
         'title',
         'description',
+        'category_id',
         'duration_minutes',
         'shuffle_questions',
         'shuffle_options',
+        'instant_feedback_enabled',
         'is_active',
         'created_by',
         'updated_by',
@@ -28,6 +30,7 @@ class Quiz extends Model
             'duration_minutes' => 'integer',
             'shuffle_questions' => 'boolean',
             'shuffle_options' => 'boolean',
+            'instant_feedback_enabled' => 'boolean',
             'is_active' => 'boolean',
         ];
     }
@@ -45,6 +48,11 @@ class Quiz extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(QuizCategory::class, 'category_id');
     }
 
     public function updater(): BelongsTo

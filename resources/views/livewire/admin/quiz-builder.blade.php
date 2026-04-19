@@ -28,6 +28,20 @@
             @enderror
         </div>
 
+        <div>
+            <label class="block text-sm font-medium mb-1">Kategori</label>
+            <select wire:model.defer="categoryId" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950">
+                <option value="">Folder Utama</option>
+                @foreach ($categories as $category)
+                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                @endforeach
+            </select>
+            <div class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Kosongkan jika quiz ingin tetap berada di folder utama.</div>
+            @error('categoryId')
+                <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+            @enderror
+        </div>
+
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div>
                 <label class="block text-sm font-medium mb-1">Durasi (menit)</label>
@@ -43,6 +57,19 @@
             <div class="flex items-center gap-2 pt-6">
                 <input type="checkbox" wire:model.defer="shuffleOptions" class="rounded border-zinc-300 dark:border-zinc-700" />
                 <label class="text-sm">Shuffle Opsi</label>
+            </div>
+        </div>
+
+        <div class="flex items-start gap-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
+            <input type="checkbox" wire:model.defer="instantFeedbackEnabled" class="mt-0.5 rounded border-zinc-300 dark:border-zinc-700" />
+            <div>
+                <label class="text-sm font-medium">Tampilkan jawaban benar setelah dipilih</label>
+                <div class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    Jika aktif, jawaban pilihan ganda langsung terkunci setelah dipilih dan peserta langsung melihat benar atau salah.
+                </div>
+                @error('instantFeedbackEnabled')
+                    <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                @enderror
             </div>
         </div>
 

@@ -15,6 +15,7 @@ class QuizStart extends Component
     public string $state = 'loading';
     public string $title = '';
     public int $durationMinutes = 0;
+    public bool $instantFeedbackEnabled = false;
     public string $finalMessage = '';
 
     public string $participantName = '';
@@ -25,7 +26,7 @@ class QuizStart extends Component
         $this->token = $token;
 
         $link = QuizLink::query()
-            ->with(['quiz:id,title,duration_minutes,is_active', 'attempt'])
+            ->with(['quiz:id,title,duration_minutes,is_active,instant_feedback_enabled', 'attempt'])
             ->where('token', $token)
             ->first();
 
@@ -55,6 +56,7 @@ class QuizStart extends Component
 
         $this->title = (string) $link->quiz->title;
         $this->durationMinutes = (int) $link->quiz->duration_minutes;
+        $this->instantFeedbackEnabled = (bool) $link->quiz->instant_feedback_enabled;
 
         if ($link->attempt) {
             $this->participantName = (string) $link->attempt->participant_name;
@@ -164,7 +166,7 @@ class QuizStart extends Component
     private function getLinkOrFail(): QuizLink
     {
         $link = QuizLink::query()
-            ->with(['quiz:id,title,duration_minutes,is_active', 'attempt'])
+            ->with(['quiz:id,title,duration_minutes,is_active,instant_feedback_enabled', 'attempt'])
             ->where('token', $this->token)
             ->first();
 
