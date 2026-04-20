@@ -1,8 +1,9 @@
 <x-layouts.admin title="Daftar Hasil">
     @php($resultStatusLabel = fn (string $status): string => $status === 'auto_submitted' ? 'Selesai Otomatis' : 'Selesai')
-    @php($resultStatusClass = fn (string $status): string => $status === 'auto_submitted'
-        ? 'bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-200'
-        : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200')
+    @php($badgeBase = 'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold')
+    @php($resultStatusClass = fn (string $status): string => $badgeBase.' '.($status === 'auto_submitted'
+        ? 'border-orange-200 bg-orange-50 text-orange-800'
+        : 'border-emerald-200 bg-emerald-50 text-emerald-800'))
     <div class="flex items-center justify-between gap-3 mb-4">
         <div class="text-lg font-semibold">Daftar Hasil</div>
     </div>
@@ -30,7 +31,7 @@
             </select>
         </div>
         <div class="sm:col-span-4 flex gap-2">
-            <button type="submit" class="rounded-md bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
+            <button type="submit" class="rounded-md bg-blue-900 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
                 Filter
             </button>
             <a href="{{ url('/admin/results') }}" class="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800/40">
@@ -61,32 +62,32 @@
                             @php($result = $row['result'])
                             @php($attempt = $result->attempt)
                             @php($pdf = $row['pdf'])
-                            <tr>
+                            <tr class="hover:bg-slate-50">
                                 <td class="px-4 py-3 align-top">
                                     <div class="font-medium">{{ $attempt?->participant_name ?? '-' }}</div>
                                     <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ $attempt?->participant_applied_for ?: '-' }}</div>
                                 </td>
                                 <td class="px-4 py-3 align-top">
-                                    <div>{{ $result->quiz?->title ?? '-' }}</div>
+                                    <div class="font-semibold">{{ $result->quiz?->title ?? '-' }}</div>
                                 </td>
                                 <td class="px-4 py-3 align-top">
                                     <div class="font-medium">{{ number_format((float) $result->score_percentage, 2) }}%</div>
                                     <div class="text-xs text-zinc-500 dark:text-zinc-400">
-                                        {{ $result->correct_answers }}/{{ $result->total_questions }} benar • Grade {{ $result->grade_letter ?? '-' }}
+                                        {{ $result->correct_answers }}/{{ $result->total_questions }} benar | Grade {{ $result->grade_letter ?? '-' }}
                                     </div>
                                 </td>
                                 <td class="px-4 py-3 align-top">
-                                    <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium {{ $resultStatusClass((string) $result->result_status) }}">
+                                    <span class="{{ $resultStatusClass((string) $result->result_status) }}">
                                         {{ $resultStatusLabel((string) $result->result_status) }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 align-top">
-                                    <div>{{ optional($result->calculated_at)->format('d M Y') ?: '-' }}</div>
-                                    <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ optional($result->calculated_at)->format('H:i:s') ?: '' }}</div>
+                                    <div class="text-sm font-medium">{{ optional($result->calculated_at)->format('d M Y') ?: '-' }}</div>
+                                    <div class="text-xs text-slate-500">{{ optional($result->calculated_at)->format('H:i:s') ?: '' }}</div>
                                 </td>
                                 <td class="px-4 py-3 align-top">
                                     @if ($pdf?->google_drive_url)
-                                        <a href="{{ $pdf->google_drive_url }}" target="_blank" rel="noreferrer" class="underline underline-offset-2">
+                                        <a href="{{ $pdf->google_drive_url }}" target="_blank" rel="noreferrer" class="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-900 hover:bg-blue-100">
                                             Buka File
                                         </a>
                                     @else
@@ -94,7 +95,7 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 align-top">
-                                    <a href="{{ url('/admin/results/'.$result->id) }}" class="underline underline-offset-2">Detail</a>
+                                    <a href="{{ url('/admin/results/'.$result->id) }}" class="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-900 hover:bg-blue-100">Detail</a>
                                 </td>
                             </tr>
                         @endforeach

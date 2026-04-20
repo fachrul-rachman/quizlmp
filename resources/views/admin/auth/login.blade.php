@@ -25,7 +25,7 @@
                 value="{{ old('email') }}"
                 required
                 autofocus
-                class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-800 dark:border-zinc-700 dark:bg-zinc-950 dark:focus:ring-zinc-200"
+                class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-900 dark:border-zinc-700 dark:bg-zinc-950 dark:focus:ring-zinc-200"
             />
             @error('email')
                 <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
@@ -39,16 +39,15 @@
                 name="password"
                 type="password"
                 required
-                class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-800 dark:border-zinc-700 dark:bg-zinc-950 dark:focus:ring-zinc-200"
+                class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-900 dark:border-zinc-700 dark:bg-zinc-950 dark:focus:ring-zinc-200"
             />
             @error('password')
                 <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
             @enderror
         </div>
 
-        <button type="submit" class="w-full rounded-md bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
+        <button type="submit" class="w-full rounded-md bg-blue-900 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
             Login
         </button>
     </form>
 </x-layouts.admin-guest>
-

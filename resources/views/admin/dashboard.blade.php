@@ -1,5 +1,9 @@
 <x-layouts.admin title="Dashboard">
     @php($resultStatusLabel = fn (string $status): string => $status === 'auto_submitted' ? 'Selesai Otomatis' : 'Selesai')
+    @php($badgeBase = 'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold')
+    @php($resultStatusClass = fn (string $status): string => $badgeBase.' '.($status === 'auto_submitted'
+        ? 'border-orange-200 bg-orange-50 text-orange-800'
+        : 'border-emerald-200 bg-emerald-50 text-emerald-800'))
     @if (session('success'))
         <div class="mb-4 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800 dark:border-green-900/50 dark:bg-green-950/30 dark:text-green-200">
             {{ session('success') }}
@@ -74,18 +78,30 @@
                     </thead>
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                         @foreach ($latestResults as $row)
-                            <tr>
-                                <td class="px-4 py-2">{{ $row->quiz_title }}</td>
-                                <td class="px-4 py-2">{{ $row->participant_name }}</td>
-                                <td class="px-4 py-2">{{ $row->participant_applied_for }}</td>
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 align-top">
+                                    <div class="font-semibold">{{ $row->quiz_title }}</div>
+                                </td>
+                                <td class="px-4 py-3 align-top">
+                                    <div class="font-medium">{{ $row->participant_name }}</div>
+                                </td>
+                                <td class="px-4 py-3 align-top">
+                                    <div class="text-sm">{{ $row->participant_applied_for }}</div>
+                                </td>
                                 <td class="px-4 py-2">{{ number_format((float) $row->score_percentage, 2) }}%</td>
                                 <td class="px-4 py-2">{{ $row->grade_letter }} - {{ $row->grade_label }}</td>
                                 <td class="px-4 py-2">
-                                    {{ $resultStatusLabel((string) $row->result_status) }}
+                                    <span class="{{ $resultStatusClass((string) $row->result_status) }}">
+                                        {{ $resultStatusLabel((string) $row->result_status) }}
+                                    </span>
                                 </td>
-                                <td class="px-4 py-2">{{ \Illuminate\Support\Carbon::parse($row->calculated_at)->format('d M Y H:i:s') }}</td>
-                                <td class="px-4 py-2">
-                                    <a href="{{ url('/admin/results/'.$row->id) }}" class="text-zinc-900 underline underline-offset-2 hover:text-zinc-700 dark:text-zinc-100 dark:hover:text-zinc-300">Detail</a>
+                                <td class="px-4 py-3 align-top">
+                                    @php($calculatedAt = \Illuminate\Support\Carbon::parse($row->calculated_at))
+                                    <div class="text-sm font-medium">{{ $calculatedAt->format('d M Y') }}</div>
+                                    <div class="text-xs text-slate-500">{{ $calculatedAt->format('H:i:s') }}</div>
+                                </td>
+                                <td class="px-4 py-3 align-top">
+                                    <a href="{{ url('/admin/results/'.$row->id) }}" class="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-900 hover:bg-blue-100">Detail</a>
                                 </td>
                             </tr>
                         @endforeach

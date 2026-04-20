@@ -13,7 +13,7 @@
 
     <div class="flex items-center justify-between gap-3 mb-4">
         <div class="text-lg font-semibold">Admin Users</div>
-        <a href="{{ url('/admin/users/create') }}" class="rounded-md bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
+        <a href="{{ url('/admin/users/create') }}" class="rounded-md bg-blue-900 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
             Tambah User
         </a>
     </div>
@@ -40,7 +40,7 @@
             </select>
         </div>
         <div class="sm:col-span-4 flex gap-2">
-            <button type="submit" class="rounded-md bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
+            <button type="submit" class="rounded-md bg-blue-900 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
                 Filter
             </button>
             <a href="{{ url('/admin/users') }}" class="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800/40">
@@ -67,20 +67,33 @@
                     </thead>
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                         @foreach ($users as $user)
-                            <tr>
-                                <td class="px-4 py-3">{{ $user->name }}</td>
-                                <td class="px-4 py-3">{{ $user->email }}</td>
-                                <td class="px-4 py-3">{{ $user->role }}</td>
-                                <td class="px-4 py-3">
-                                    <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium {{ $user->is_active ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200' : 'bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200' }}">
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 align-top">
+                                    <div class="font-semibold">{{ $user->name }}</div>
+                                </td>
+                                <td class="px-4 py-3 align-top">
+                                    <div class="font-medium">{{ $user->email }}</div>
+                                </td>
+                                <td class="px-4 py-3 align-top">
+                                    <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                                        {{ $user->role }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 align-top">
+                                    <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold {{ $user->is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-slate-100 text-slate-700' }}">
                                         {{ $user->is_active ? 'aktif' : 'nonaktif' }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3">{{ optional($user->created_at)->format('d M Y H:i') ?: '-' }}</td>
-                                <td class="px-4 py-3">
+                                <td class="px-4 py-3 align-top">
+                                    <div class="text-sm font-medium">{{ optional($user->created_at)->format('d M Y') ?: '-' }}</div>
+                                    <div class="text-xs text-slate-500">{{ optional($user->created_at)->format('H:i') ?: '' }}</div>
+                                </td>
+                                <td class="px-4 py-3 align-top">
                                     <div class="flex items-center gap-3">
-                                        <a href="{{ url('/admin/users/'.$user->id.'/edit') }}" class="underline underline-offset-2">Edit</a>
-                                        <button type="button" class="underline underline-offset-2 text-red-600 dark:text-red-400" onclick="document.getElementById('delete-user-{{ $user->id }}').showModal()">
+                                        <a href="{{ url('/admin/users/'.$user->id.'/edit') }}" class="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-900 hover:bg-amber-100">
+                                            Edit
+                                        </a>
+                                        <button type="button" class="inline-flex items-center rounded-md border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-semibold text-rose-900 hover:bg-rose-100" onclick="document.getElementById('delete-user-{{ $user->id }}').showModal()">
                                             Hapus
                                         </button>
                                     </div>

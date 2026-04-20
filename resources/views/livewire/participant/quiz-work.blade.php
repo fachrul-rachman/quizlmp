@@ -15,7 +15,8 @@
         <h1 class="text-xl font-semibold">Soal belum tersedia.</h1>
         <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">Data soal tidak ditemukan. Hubungi admin untuk memeriksa quiz ini.</div>
     @elseif ($state === 'work')
-        <div class="flex items-start justify-between gap-3">
+        <div class="sticky top-0 z-10 -mx-6 -mt-6 mb-5 border-b border-zinc-200 bg-white/95 px-6 py-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
+            <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <div class="text-sm text-zinc-500 dark:text-zinc-400">Nama Quiz</div>
                 <div class="mt-1 text-lg font-semibold">{{ $title }}</div>
@@ -23,33 +24,29 @@
                 <div class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">Melamar Untuk: {{ $participantAppliedFor }}</div>
             </div>
 
-            <div class="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-semibold dark:border-zinc-800 dark:bg-zinc-900/40">
+            @php($isAmber = $secondsRemaining > 0 && $secondsRemaining <= 300)
+            @php($isRed = $secondsRemaining > 0 && $secondsRemaining <= 60)
+            @php($timerWrap = $isRed ? 'border-rose-200 bg-rose-50 text-rose-900' : ($isAmber ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-zinc-200 bg-zinc-50 text-zinc-900'))
+            <div class="rounded-md border px-3 py-2 text-sm font-semibold {{ $timerWrap }}">
                 Sisa Waktu:
                 {{ $secondsRemaining >= 3600 ? gmdate('H:i:s', $secondsRemaining) : gmdate('i:s', $secondsRemaining) }}
+            </div>
             </div>
         </div>
 
         @if ($instantFeedbackEnabled)
             <div class="mt-4 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/20 dark:text-sky-100">
-                Setiap soal pilihan ganda hanya bisa dijawab satu kali. Setelah Anda memilih opsi, jawaban langsung terkunci dan hasil benar atau salah langsung ditampilkan.
+                Mode jawaban instan aktif: setelah klik "Jawab", jawaban terkunci dan Anda otomatis lanjut ke soal berikutnya.
             </div>
         @else
             <div class="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-100">
-                Jawaban tersimpan saat Anda memilih opsi atau mengetik. Tombol submit akan aktif setelah semua soal terjawab.
+                Tidak ada tombol kembali. Isi jawaban, lalu klik "Jawab" untuk menyimpan dan lanjut otomatis ke soal berikutnya.
             </div>
         @endif
 
         <div class="mt-6">
             <div class="flex items-center justify-between gap-3">
                 <div class="text-sm font-semibold">Soal {{ $step }} dari {{ count($questionIds) }}</div>
-                <div class="flex items-center gap-2">
-                    <button type="button" class="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800/40" wire:click="prev" @disabled($step <= 1)>
-                        Back
-                    </button>
-                    <button type="button" class="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800/40" wire:click="next" @disabled($step >= count($questionIds))>
-                        Next
-                    </button>
-                </div>
             </div>
 
             <div class="mt-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
@@ -83,22 +80,14 @@
                                     $optionClass = 'border-sky-300 bg-sky-50 dark:border-sky-900/50 dark:bg-sky-950/20';
                                 }
                             @endphp
-                            <label class="flex items-start gap-3 rounded-md border p-3 {{ $optionClass }}">
-                                <input
-                                    type="radio"
-                                    name="selected_option"
-                                    value="{{ $opt['id'] }}"
-                                    class="mt-1"
-                                    wire:model="selectedOptionId"
-                                    @disabled($instantFeedbackEnabled && $currentAnswerLocked)
-                                />
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-2 text-sm font-semibold">
-                                        <span>{{ $opt['label'] }}</span>
+                            <label class="flex items-start gap-3 rounded-md border p-3 sm:p-4 {{ $optionClass }}">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-2 text-sm font-semibold">
+                                        <span class="inline-flex items-center rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-xs font-semibold text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200">{{ $opt['label'] }}</span>
                                         @if ($instantFeedbackEnabled && $currentAnswerLocked && !empty($opt['is_correct']))
-                                            <span class="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">Benar</span>
+                                            <span class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">Benar</span>
                                         @elseif ($instantFeedbackEnabled && $currentAnswerLocked && $isSelected && $currentAnswerIsCorrect === false)
-                                            <span class="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-950/40 dark:text-red-200">Pilihan Anda</span>
+                                            <span class="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-xs font-semibold text-rose-800">Pilihan Anda</span>
                                         @endif
                                     </div>
                                     @if (filled($opt['text']))
@@ -110,50 +99,57 @@
                                         </div>
                                     @endif
                                 </div>
+                                <input
+                                    type="radio"
+                                    name="selected_option"
+                                    value="{{ $opt['id'] }}"
+                                    class="mt-0.5 h-5 w-5 accent-blue-900"
+                                    wire:model="selectedOptionId"
+                                    @disabled($instantFeedbackEnabled && $currentAnswerLocked)
+                                />
                             </label>
                         @endforeach
                     </div>
                     @if ($instantFeedbackEnabled && $currentAnswerLocked)
-                        <div class="mt-3 text-sm font-medium {{ $currentAnswerIsCorrect ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300' }}">
-                            {{ $currentAnswerIsCorrect ? 'Jawaban Anda benar.' : 'Jawaban Anda salah. Opsi yang benar ditandai hijau.' }}
+                        <div class="mt-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
+                            <div class="font-semibold">Terkunci</div>
+                            <div class="mt-1">{{ $currentAnswerIsCorrect ? 'Jawaban Anda benar.' : 'Jawaban Anda salah. Opsi yang benar ditandai hijau.' }}</div>
                         </div>
                     @endif
+                    @error('selectedOptionId')
+                        <div class="mt-3 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                    @enderror
                 @else
                     <div class="mt-4">
                         <label class="block text-sm font-medium mb-1">Jawaban</label>
                         <textarea wire:model.debounce.500ms="shortAnswerText" rows="3" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950"></textarea>
+                        @error('shortAnswerText')
+                            <div class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                        @enderror
                     </div>
                 @endif
             </div>
 
             <div class="mt-4 flex items-center justify-between gap-3">
                 <div class="text-sm text-zinc-600 dark:text-zinc-300">Terjawab: {{ $answeredCount }}/{{ $totalQuestions }}</div>
+                @php($canAnswer = $currentQuestionType === 'multiple_choice' ? (bool) $selectedOptionId : (trim((string) $shortAnswerText) !== ''))
                 <button
                     type="button"
-                    wire:click="openSubmitConfirm"
-                    @disabled(! $canSubmit)
-                    class="rounded-md bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50 disabled:hover:bg-zinc-900 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 dark:disabled:hover:bg-white"
+                    wire:click="answerCurrent"
+                    @disabled(! $canAnswer)
+                    class="rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50 disabled:hover:bg-blue-900"
                 >
-                    Submit Jawaban
+                    Jawab
                 </button>
             </div>
         </div>
 
-        @if ($showSubmitConfirm)
-            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-                <div class="w-full max-w-md rounded-lg border border-zinc-200 bg-white p-4 shadow-lg dark:border-zinc-800 dark:bg-zinc-950">
-                    <div class="text-sm font-semibold">Konfirmasi Submit</div>
-                    <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">Jawaban akan dikirim final dan tidak bisa diubah lagi.</div>
-                    <div class="mt-4 flex items-center justify-end gap-2">
-                        <button type="button" wire:click="cancelSubmit" class="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800/40">
-                            Batal
-                        </button>
-                        <button type="button" wire:click="submit" class="rounded-md bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
-                            Submit
-                        </button>
-                    </div>
-                </div>
-            </div>
-        @endif
+        <script>
+            window.addEventListener('participant-quiz-auto-advance', () => {
+                window.setTimeout(() => {
+                    try { @this.call('advanceAfterInstantFeedback'); } catch (e) {}
+                }, 900);
+            });
+        </script>
     @endif
 </div>

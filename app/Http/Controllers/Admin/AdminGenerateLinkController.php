@@ -42,10 +42,15 @@ class AdminGenerateLinkController extends Controller
         $data = $request->validate([
             'quiz_id' => ['required', 'integer', 'exists:quizzes,id'],
             'count' => ['required', 'integer', 'min:1'],
+            'usage_type' => ['required', 'in:single,multi'],
+            'expires_in_hours' => ['required_if:usage_type,multi', 'integer', 'min:1'],
         ], [
             'quiz_id.required' => 'Pilih Quiz wajib diisi.',
             'count.required' => 'Jumlah Link wajib diisi.',
             'count.min' => 'Jumlah Link harus angka positif.',
+            'usage_type.required' => 'Tipe Link wajib dipilih.',
+            'expires_in_hours.required_if' => 'Expired (jam) wajib diisi untuk link multi-use.',
+            'expires_in_hours.min' => 'Expired (jam) harus angka positif.',
         ]);
 
         $quiz = Quiz::query()->findOrFail((int) $data['quiz_id']);
@@ -56,14 +61,16 @@ class AdminGenerateLinkController extends Controller
         }
 
         $count = (int) $data['count'];
+        $usageType = (string) $data['usage_type'];
+        $expiresInHours = isset($data['expires_in_hours']) ? (int) $data['expires_in_hours'] : null;
 
         $generatedIds = [];
 
-        DB::transaction(function () use ($quiz, $count, &$generatedIds): void {
+        DB::transaction(function () use ($quiz, $count, $usageType, $expiresInHours, &$generatedIds): void {
             $userId = (int) auth()->id();
 
             for ($i = 0; $i < $count; $i++) {
-                $generatedIds[] = $this->createUniqueLink($quiz->id, $userId)->id;
+                $generatedIds[] = $this->createUniqueLink($quiz->id, $userId, $usageType, $expiresInHours)->id;
             }
         });
 
@@ -73,18 +80,25 @@ class AdminGenerateLinkController extends Controller
         return redirect()->to('/admin/generate-link');
     }
 
-    private function createUniqueLink(int $quizId, int $userId): QuizLink
+    private function createUniqueLink(int $quizId, int $userId, string $usageType, ?int $expiresInHours): QuizLink
     {
+        $expiresAt = null;
+        if ($usageType === 'multi' && is_int($expiresInHours) && $expiresInHours > 0) {
+            $expiresAt = now()->addHours($expiresInHours);
+        }
+
         for ($attempt = 0; $attempt < 10; $attempt++) {
             try {
                 return QuizLink::create([
                     'quiz_id' => $quizId,
                     'token' => Str::random(40),
+                    'usage_type' => $usageType,
                     'status' => 'unused',
                     'opened_at' => null,
                     'started_at' => null,
                     'submitted_at' => null,
                     'expired_at' => null,
+                    'expires_at' => $expiresAt,
                     'created_by' => $userId,
                 ]);
             } catch (QueryException $e) {
@@ -99,4 +113,3 @@ class AdminGenerateLinkController extends Controller
         throw new \RuntimeException('Gagal membuat token unik.');
     }
 }
-

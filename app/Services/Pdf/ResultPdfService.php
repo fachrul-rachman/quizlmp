@@ -7,9 +7,11 @@ use App\Models\Question;
 use App\Models\QuestionOption;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
+use App\Models\QuizLink;
 use App\Models\QuizResult;
 use App\Models\ResultPdf;
 use App\Models\ShortAnswerKey;
+use App\Services\GoogleDrive\GoogleDriveFolderService;
 use App\Services\GoogleDrive\GoogleDriveUploadService;
 use App\Support\DeterministicShuffle;
 use Dompdf\Dompdf;
@@ -51,7 +53,8 @@ class ResultPdfService
             $rows = $this->buildRows($attempt, $questionIds, (bool) $quiz->shuffle_options);
 
             $printedAt = now();
-            $fileNameBase = $this->sanitizeFileName($quiz->title.' - '.$attempt->participant_name.' - '.$printedAt->format('Y-m-d H-i'));
+            $score = number_format((float) $result->score_percentage, 2, '.', '');
+            $fileNameBase = $this->sanitizeFileName($quiz->title.' - '.$attempt->participant_name.' - '.$printedAt->format('Y-m-d H-i').' - Score '.$score.' - Grade '.$result->grade_letter);
             $fileName = $fileNameBase.'.pdf';
             $relativePath = 'results/'.$result->id.'/'.$fileName;
 
@@ -257,6 +260,11 @@ class ResultPdfService
             return;
         }
 
+        $uploadFolderId = $this->resolveUploadFolderId($pdf, $folderId);
+        if ($uploadFolderId === '') {
+            return;
+        }
+
         $relativePath = is_string($pdf->local_path) ? $pdf->local_path : '';
         if ($relativePath === '' || ! Storage::disk('local')->exists($relativePath)) {
             return;
@@ -266,7 +274,7 @@ class ResultPdfService
             $absolutePath = Storage::disk('local')->path($relativePath);
             $fileName = (string) $pdf->file_name;
 
-            $res = app(GoogleDriveUploadService::class)->uploadPdf($absolutePath, $fileName, $folderId);
+            $res = app(GoogleDriveUploadService::class)->uploadPdf($absolutePath, $fileName, $uploadFolderId);
             if (! $res) {
                 return;
             }
@@ -290,6 +298,53 @@ class ResultPdfService
         $name = trim($name);
         $name = Str::limit($name, 120, '');
         return $name === '' ? 'hasil' : $name;
+    }
+
+    private function resolveUploadFolderId(ResultPdf $pdf, string $rootFolderId): string
+    {
+        $result = QuizResult::query()
+            ->with([
+                'quiz:id,title',
+                'attempt:id,quiz_link_id',
+                'attempt.quizLink:id,usage_type,google_drive_folder_id,google_drive_folder_url',
+            ])
+            ->find((int) $pdf->quiz_result_id);
+
+        if (! $result) {
+            return $rootFolderId;
+        }
+
+        $attempt = $result->attempt;
+        $quiz = $result->quiz;
+        if (! $attempt || ! $quiz) {
+            return $rootFolderId;
+        }
+
+        $link = $attempt->quizLink;
+        if (! $link || (string) $link->usage_type !== 'multi') {
+            return $rootFolderId;
+        }
+
+        if (is_string($link->google_drive_folder_id) && $link->google_drive_folder_id !== '') {
+            return $link->google_drive_folder_id;
+        }
+
+        return $this->createAndStoreLinkFolderId($link, $quiz->title, $rootFolderId) ?? '';
+    }
+
+    private function createAndStoreLinkFolderId(QuizLink $link, string $quizTitle, string $rootFolderId): ?string
+    {
+        $name = $this->sanitizeFileName($quizTitle.' - Link #'.$link->id);
+        $res = app(GoogleDriveFolderService::class)->createFolder($name, $rootFolderId);
+        if (! $res) {
+            return null;
+        }
+
+        $link->google_drive_folder_id = (string) $res['folder_id'];
+        $link->google_drive_folder_url = (string) $res['google_drive_url'];
+        $link->save();
+
+        return (string) $res['folder_id'];
     }
 
     private function seedFromAttempt(int $attemptId, int $quizPk): int

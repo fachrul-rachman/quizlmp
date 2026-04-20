@@ -22,15 +22,20 @@ class QuizWork extends Component
 {
     public string $token;
 
+    private const SESSION_ATTEMPT_KEY_PREFIX = 'quiz_attempt_id_for_token_';
+
     public string $state = 'loading';
     public string $title = '';
     public string $participantName = '';
     public string $participantAppliedFor = '';
     public int $secondsRemaining = 0;
 
+    public int $linkId = 0;
     public int $attemptId = 0;
     public int $quizId = 0;
+    public int $quizPk = 0;
     public bool $instantFeedbackEnabled = false;
+    public bool $shuffleOptions = false;
 
     public int $step = 1;
 
@@ -51,15 +56,10 @@ class QuizWork extends Component
     public ?bool $currentAnswerIsCorrect = null;
     public ?int $currentCorrectOptionId = null;
     public bool $currentAnswerLocked = false;
+    public bool $pendingAutoAdvance = false;
 
     public int $answeredCount = 0;
     public int $totalQuestions = 0;
-    public bool $canSubmit = false;
-    public bool $showSubmitConfirm = false;
-
-    protected array $queryString = [
-        'step' => ['except' => 1],
-    ];
 
     public function mount(string $token): void
     {
@@ -85,25 +85,44 @@ class QuizWork extends Component
             return;
         }
 
-        if (! $link->attempt) {
+        if ($link->usage_type === 'multi' && $this->isMultiUseExpired($link)) {
+            $attempt = $this->getAttemptFromSession($link);
+            if ($attempt) {
+                $this->linkId = (int) $link->id;
+                $this->attemptId = (int) $attempt->id;
+                $this->expireAttemptIfMultiUseLinkExpired();
+            }
+
+            $this->state = 'expired';
+            return;
+        }
+
+        $attempt = $link->usage_type === 'multi'
+            ? $this->getAttemptFromSession($link)
+            : $link->attempt;
+
+        if (! $attempt) {
             $this->redirect('/quiz/'.$token, navigate: false);
             return;
         }
 
-        if ($link->attempt->status !== 'in_progress') {
+        if ($attempt->status !== 'in_progress') {
             $this->redirect('/quiz/'.$token, navigate: false);
             return;
         }
 
         $this->title = (string) $link->quiz->title;
-        $this->participantName = (string) $link->attempt->participant_name;
-        $this->participantAppliedFor = (string) $link->attempt->participant_applied_for;
+        $this->participantName = (string) $attempt->participant_name;
+        $this->participantAppliedFor = (string) $attempt->participant_applied_for;
 
-        $this->attemptId = (int) $link->attempt->id;
-        $this->quizId = (int) $link->attempt->quiz_id;
+        $this->linkId = (int) $link->id;
+        $this->attemptId = (int) $attempt->id;
+        $this->quizId = (int) $attempt->quiz_id;
+        $this->quizPk = (int) $link->quiz->id;
         $this->instantFeedbackEnabled = (bool) $link->quiz->instant_feedback_enabled;
+        $this->shuffleOptions = (bool) $link->quiz->shuffle_options;
 
-        $this->secondsRemaining = $this->calculateSecondsRemaining($link->attempt);
+        $this->secondsRemaining = $this->calculateSecondsRemaining($attempt);
         if ($this->secondsRemaining <= 0) {
             $this->finalizeAutoIfNeeded();
             return;
@@ -115,8 +134,9 @@ class QuizWork extends Component
             return;
         }
 
-        $this->step = max(1, min((int) $this->step, count($this->questionIds)));
-        $this->loadStep($this->attemptId, $this->quizId, (bool) $link->quiz->shuffle_options, (int) $link->quiz->id);
+        $this->step = 1;
+        $this->moveToFirstUnansweredStep();
+        $this->loadStep($this->attemptId, $this->quizId, $this->shuffleOptions, $this->quizPk);
         $this->refreshProgress();
 
         $this->state = 'work';
@@ -125,6 +145,11 @@ class QuizWork extends Component
     public function tick(): void
     {
         if ($this->attemptId <= 0) {
+            return;
+        }
+
+        $this->expireAttemptIfMultiUseLinkExpired();
+        if ($this->state === 'expired') {
             return;
         }
 
@@ -140,139 +165,10 @@ class QuizWork extends Component
         }
     }
 
-    public function updatedSelectedOptionId(): void
+    public function answerCurrent(): void
     {
-        if ($this->state !== 'work') {
-            return;
-        }
-
-        if ($this->instantFeedbackEnabled) {
-            if ($this->currentAnswerLocked) {
-                $this->selectedOptionId = $this->lockedSelectedOptionId;
-                return;
-            }
-
-            $this->lockCurrentMultipleChoiceAnswer();
-            return;
-        }
-
-        $this->saveAnswerDraft();
-        $this->refreshProgress();
-    }
-
-    public function updatedShortAnswerText(): void
-    {
-        if ($this->state !== 'work') {
-            return;
-        }
-
-        $this->saveAnswerDraft();
-        $this->refreshProgress();
-    }
-
-    public function prev(): void
-    {
-        if ($this->step <= 1) {
-            return;
-        }
-
-        $this->saveAnswerDraft();
-        $this->step--;
-        $this->reloadForStep();
-    }
-
-    public function next(): void
-    {
-        if ($this->step >= count($this->questionIds)) {
-            return;
-        }
-
-        $this->saveAnswerDraft();
-        $this->step++;
-        $this->reloadForStep();
-    }
-
-    public function goToStep(int $step): void
-    {
-        $step = max(1, min($step, count($this->questionIds)));
-        if ($step === $this->step) {
-            return;
-        }
-
-        $this->saveAnswerDraft();
-        $this->step = $step;
-        $this->reloadForStep();
-    }
-
-    public function openSubmitConfirm(): void
-    {
-        $this->saveAnswerDraft();
-        $this->refreshProgress();
-
-        if (! $this->canSubmit) {
-            return;
-        }
-
-        $this->showSubmitConfirm = true;
-    }
-
-    public function cancelSubmit(): void
-    {
-        $this->showSubmitConfirm = false;
-    }
-
-    public function submit(): void
-    {
-        $this->saveAnswerDraft();
-        $this->refreshProgress();
-
-        if (! $this->canSubmit) {
-            return;
-        }
-
-        $this->finalize('submitted');
-        $this->redirect('/quiz/'.$this->token.'/done', navigate: false);
-    }
-
-    private function reloadForStep(): void
-    {
-        $link = QuizLink::query()
-            ->with(['quiz:id,shuffle_options,instant_feedback_enabled', 'attempt'])
-            ->where('token', $this->token)
-            ->first();
-
-        if (! $link || ! $link->attempt || ! $link->quiz) {
-            $this->state = 'invalid';
-            return;
-        }
-
-        $this->secondsRemaining = $this->calculateSecondsRemaining($link->attempt);
-        if ($this->secondsRemaining <= 0) {
-            $this->finalizeAutoIfNeeded();
-            return;
-        }
-
-        $this->attemptId = (int) $link->attempt->id;
-        $this->quizId = (int) $link->attempt->quiz_id;
-        $this->instantFeedbackEnabled = (bool) $link->quiz->instant_feedback_enabled;
-
-        $this->loadStep($this->attemptId, $this->quizId, (bool) $link->quiz->shuffle_options, (int) $link->quiz->id);
-        $this->refreshProgress();
-    }
-
-    private function saveAnswerDraft(): void
-    {
-        $link = QuizLink::query()
-            ->with('attempt')
-            ->where('token', $this->token)
-            ->first();
-
-        if (! $link || ! $link->attempt) {
-            return;
-        }
-
-        $this->secondsRemaining = $this->calculateSecondsRemaining($link->attempt);
-        if ($this->secondsRemaining <= 0) {
+        $this->expireAttemptIfMultiUseLinkExpired();
+        if ($this->state === 'expired') {
             return;
         }
 
@@ -280,33 +176,100 @@ class QuizWork extends Component
             return;
         }
 
-        if ($this->currentQuestionType === 'multiple_choice') {
-            if ($this->instantFeedbackEnabled && $this->currentAnswerLocked) {
-                return;
-            }
-
-            $selected = $this->selectedOptionId;
-            AttemptAnswer::updateOrCreate(
-                ['quiz_attempt_id' => $link->attempt->id, 'question_id' => $this->currentQuestionId],
-                [
-                    'selected_option_id' => $selected ?: null,
-                    'answer_text' => null,
-                    'answered_at' => $selected ? now() : null,
-                ],
-            );
-
+        if ($this->attemptId <= 0) {
             return;
         }
 
-        $text = trim($this->shortAnswerText);
-        AttemptAnswer::updateOrCreate(
-            ['quiz_attempt_id' => $link->attempt->id, 'question_id' => $this->currentQuestionId],
-            [
-                'selected_option_id' => null,
-                'answer_text' => $text !== '' ? $text : null,
-                'answered_at' => $text !== '' ? now() : null,
-            ],
-        );
+        $attempt = QuizAttempt::query()->find($this->attemptId);
+        if (! $attempt || (int) $attempt->quiz_link_id !== (int) $this->linkId) {
+            return;
+        }
+
+        if ($attempt->status !== 'in_progress') {
+            return;
+        }
+
+        $this->secondsRemaining = $this->calculateSecondsRemaining($attempt);
+        if ($this->secondsRemaining <= 0) {
+            return;
+        }
+
+        if ($this->currentQuestionType === 'multiple_choice') {
+            if (! $this->selectedOptionId) {
+                throw ValidationException::withMessages(['selectedOptionId' => 'Pilih salah satu opsi.']);
+            }
+
+            $selectedOptionId = (int) $this->selectedOptionId;
+            $correctOptionId = (int) ($this->currentCorrectOptionId ?? 0);
+            $isCorrect = $selectedOptionId !== 0 && $selectedOptionId === $correctOptionId;
+
+            AttemptAnswer::updateOrCreate(
+                ['quiz_attempt_id' => $attempt->id, 'question_id' => $this->currentQuestionId],
+                [
+                    'selected_option_id' => $selectedOptionId,
+                    'answer_text' => null,
+                    'is_correct' => $isCorrect,
+                    'answered_at' => now(),
+                ],
+            );
+
+            if ($this->instantFeedbackEnabled) {
+                $this->currentAnswerLocked = true;
+                $this->currentAnswerIsCorrect = $isCorrect;
+                $this->lockedSelectedOptionId = $selectedOptionId;
+            }
+        } else {
+            $text = trim($this->shortAnswerText);
+            if ($text === '') {
+                throw ValidationException::withMessages(['shortAnswerText' => 'Jawaban wajib diisi.']);
+            }
+
+            AttemptAnswer::updateOrCreate(
+                ['quiz_attempt_id' => $attempt->id, 'question_id' => $this->currentQuestionId],
+                [
+                    'selected_option_id' => null,
+                    'answer_text' => $text,
+                    'answered_at' => now(),
+                ],
+            );
+        }
+
+        $this->refreshProgress();
+
+        if ($this->answeredCount >= $this->totalQuestions) {
+            $this->finalize('submitted');
+            $this->redirect('/quiz/'.$this->token.'/done', navigate: false);
+            return;
+        }
+
+        if ($this->instantFeedbackEnabled && $this->currentQuestionType === 'multiple_choice') {
+            $this->pendingAutoAdvance = true;
+            $this->dispatch('participant-quiz-auto-advance');
+            return;
+        }
+
+        $this->goToNextUnansweredStep();
+    }
+
+    public function advanceAfterInstantFeedback(): void
+    {
+        $this->expireAttemptIfMultiUseLinkExpired();
+        if ($this->state === 'expired') {
+            return;
+        }
+
+        if (! $this->pendingAutoAdvance) {
+            return;
+        }
+
+        $this->pendingAutoAdvance = false;
+        $this->goToNextUnansweredStep();
+    }
+
+    private function goToNextUnansweredStep(): void
+    {
+        $this->moveToFirstUnansweredStep();
+        $this->loadStep($this->attemptId, $this->quizId, $this->shuffleOptions, $this->quizPk);
     }
 
     private function calculateSecondsRemaining(QuizAttempt $attempt): int
@@ -326,7 +289,6 @@ class QuizWork extends Component
         $this->totalQuestions = count($this->questionIds);
         if ($this->attemptId <= 0 || $this->totalQuestions === 0) {
             $this->answeredCount = 0;
-            $this->canSubmit = false;
             return;
         }
 
@@ -354,7 +316,41 @@ class QuizWork extends Component
         }
 
         $this->answeredCount = $answered;
-        $this->canSubmit = ($answered === $this->totalQuestions);
+    }
+
+    private function moveToFirstUnansweredStep(): void
+    {
+        if ($this->attemptId <= 0 || $this->questionIds === []) {
+            $this->step = 1;
+            return;
+        }
+
+        $answers = AttemptAnswer::query()
+            ->where('quiz_attempt_id', $this->attemptId)
+            ->whereIn('question_id', $this->questionIds)
+            ->get(['question_id', 'selected_option_id', 'answer_text'])
+            ->keyBy('question_id');
+
+        foreach ($this->questionIds as $idx => $qid) {
+            $a = $answers->get($qid);
+            if (! $a) {
+                $this->step = $idx + 1;
+                return;
+            }
+
+            if ($a->selected_option_id) {
+                continue;
+            }
+
+            if (is_string($a->answer_text) && trim($a->answer_text) !== '') {
+                continue;
+            }
+
+            $this->step = $idx + 1;
+            return;
+        }
+
+        $this->step = count($this->questionIds);
     }
 
     /**
@@ -471,6 +467,11 @@ class QuizWork extends Component
 
     private function lockCurrentMultipleChoiceAnswer(): void
     {
+        $this->expireAttemptIfMultiUseLinkExpired();
+        if ($this->state === 'expired') {
+            return;
+        }
+
         if (! $this->instantFeedbackEnabled || $this->currentQuestionType !== 'multiple_choice' || ! $this->currentQuestionId) {
             return;
         }
@@ -479,16 +480,16 @@ class QuizWork extends Component
             return;
         }
 
-        $link = QuizLink::query()
-            ->with('attempt')
-            ->where('token', $this->token)
-            ->first();
-
-        if (! $link || ! $link->attempt || $link->attempt->status !== 'in_progress') {
+        $attempt = QuizAttempt::query()->find($this->attemptId);
+        if (! $attempt || (int) $attempt->quiz_link_id !== (int) $this->linkId) {
             return;
         }
 
-        $this->secondsRemaining = $this->calculateSecondsRemaining($link->attempt);
+        if ($attempt->status !== 'in_progress') {
+            return;
+        }
+
+        $this->secondsRemaining = $this->calculateSecondsRemaining($attempt);
         if ($this->secondsRemaining <= 0) {
             return;
         }
@@ -498,7 +499,7 @@ class QuizWork extends Component
         $isCorrect = $selectedOptionId !== 0 && $selectedOptionId === $correctOptionId;
 
         AttemptAnswer::updateOrCreate(
-            ['quiz_attempt_id' => $link->attempt->id, 'question_id' => $this->currentQuestionId],
+            ['quiz_attempt_id' => $attempt->id, 'question_id' => $this->currentQuestionId],
             [
                 'selected_option_id' => $selectedOptionId,
                 'answer_text' => null,
@@ -551,7 +552,7 @@ class QuizWork extends Component
                 return;
             }
 
-            if (in_array($link->status, ['submitted', 'expired'], true)) {
+            if ($link->usage_type !== 'multi' && in_array($link->status, ['submitted', 'expired'], true)) {
                 return;
             }
 
@@ -567,10 +568,12 @@ class QuizWork extends Component
             $attempt->submitted_at = $now;
             $attempt->save();
 
-            $link->status = $finalLinkStatus;
-            $link->submitted_at = $now;
-            $link->expired_at = $now;
-            $link->save();
+            if ($link->usage_type !== 'multi') {
+                $link->status = $finalLinkStatus;
+                $link->submitted_at = $now;
+                $link->expired_at = $now;
+                $link->save();
+            }
 
             $questionIds = DB::table('questions')
                 ->where('quiz_id', $attempt->quiz_id)
@@ -703,7 +706,15 @@ class QuizWork extends Component
             }
 
             try {
-                app(DiscordResultWebhookService::class)->sendForResultId($resultId);
+                $attempt = QuizAttempt::query()
+                    ->with('quizLink:id,usage_type')
+                    ->where('id', $this->attemptId)
+                    ->first(['id', 'quiz_link_id']);
+
+                $isMulti = (bool) ($attempt?->quizLink && (string) $attempt->quizLink->usage_type === 'multi');
+                if (! $isMulti) {
+                    app(DiscordResultWebhookService::class)->sendForResultId($resultId);
+                }
             } catch (\Throwable $e) {
                 Log::error('discord webhook send failed', [
                     'quiz_result_id' => $resultId,
@@ -711,6 +722,87 @@ class QuizWork extends Component
                 ]);
             }
         }
+    }
+
+    private function isMultiUseExpired(QuizLink $link): bool
+    {
+        if (! $link->expires_at) {
+            return false;
+        }
+
+        return CarbonImmutable::now()->gte(CarbonImmutable::parse($link->expires_at));
+    }
+
+    private function getAttemptSessionKey(QuizLink $link): string
+    {
+        return self::SESSION_ATTEMPT_KEY_PREFIX.$link->token;
+    }
+
+    private function getAttemptFromSession(QuizLink $link): ?QuizAttempt
+    {
+        $attemptId = session()->get($this->getAttemptSessionKey($link));
+        if (! is_int($attemptId) || $attemptId <= 0) {
+            return null;
+        }
+
+        return QuizAttempt::query()
+            ->where('id', $attemptId)
+            ->where('quiz_link_id', $link->id)
+            ->first();
+    }
+
+    private function expireAttemptIfMultiUseLinkExpired(): void
+    {
+        if ($this->linkId <= 0 || $this->attemptId <= 0) {
+            return;
+        }
+
+        $link = QuizLink::query()->find($this->linkId);
+        if (! $link || $link->usage_type !== 'multi') {
+            return;
+        }
+
+        if (! $this->isMultiUseExpired($link)) {
+            return;
+        }
+
+        DB::transaction(function () use ($link): void {
+            $now = now();
+
+            $attempt = QuizAttempt::query()
+                ->where('id', $this->attemptId)
+                ->lockForUpdate()
+                ->first();
+
+            $linkLocked = QuizLink::query()
+                ->where('id', $link->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $attempt || ! $linkLocked) {
+                return;
+            }
+
+            if ((int) $attempt->quiz_link_id !== (int) $linkLocked->id) {
+                return;
+            }
+
+            if (in_array((string) $attempt->status, ['submitted', 'auto_submitted', 'expired'], true)) {
+                return;
+            }
+
+            $attempt->status = 'expired';
+            $attempt->submitted_at = $now;
+            $attempt->save();
+
+            if ($linkLocked->status !== 'expired') {
+                $linkLocked->status = 'expired';
+                $linkLocked->expired_at = $linkLocked->expired_at ?? $now;
+                $linkLocked->save();
+            }
+        });
+
+        $this->state = 'expired';
     }
 
     private function normalizeShortAnswer(string $text): string

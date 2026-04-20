@@ -7,7 +7,7 @@
 
     <div class="flex items-center justify-between gap-3 mb-4">
         <div class="text-lg font-semibold">Quiz</div>
-        <a href="{{ url('/admin/quizzes/create') }}" class="rounded-md bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
+        <a href="{{ url('/admin/quizzes/create') }}" class="rounded-md bg-blue-900 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
             Tambah Quiz
         </a>
     </div>
@@ -36,7 +36,7 @@
             </select>
         </div>
         <div class="sm:col-span-4 flex gap-2">
-            <button type="submit" class="rounded-md bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
+            <button type="submit" class="rounded-md bg-blue-900 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
                 Filter
             </button>
             <a href="{{ url('/admin/quizzes') }}" class="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800/40">
@@ -66,24 +66,36 @@
                     </thead>
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                         @foreach ($quizzes as $quiz)
-                            <tr>
-                                <td class="px-4 py-2">{{ $quiz->title }}</td>
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 align-top">
+                                    <div class="font-semibold">{{ $quiz->title }}</div>
+                                </td>
                                 <td class="px-4 py-2">
                                     <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-200">
                                         {{ $quiz->category?->name ?? 'Folder Utama' }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-2">{{ $quiz->duration_minutes }} menit</td>
-                                <td class="px-4 py-2">{{ (int) ($quiz->active_questions_count ?? 0) }}</td>
-                                <td class="px-4 py-2">{{ $quiz->shuffle_questions ? 'Ya' : 'Tidak' }}</td>
-                                <td class="px-4 py-2">{{ $quiz->shuffle_options ? 'Ya' : 'Tidak' }}</td>
-                                <td class="px-4 py-2">{{ $quiz->is_active ? 'Aktif' : 'Nonaktif' }}</td>
-                                <td class="px-4 py-2">{{ $quiz->creator?->name ?? '-' }}</td>
+                                <td class="px-4 py-3 align-top">{{ $quiz->duration_minutes }} menit</td>
+                                <td class="px-4 py-3 align-top">{{ (int) ($quiz->active_questions_count ?? 0) }}</td>
+                                <td class="px-4 py-3 align-top">{{ $quiz->shuffle_questions ? 'Ya' : 'Tidak' }}</td>
+                                <td class="px-4 py-3 align-top">{{ $quiz->shuffle_options ? 'Ya' : 'Tidak' }}</td>
                                 <td class="px-4 py-2">
+                                    <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold {{ $quiz->is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-slate-100 text-slate-700' }}">
+                                        {{ $quiz->is_active ? 'Aktif' : 'Nonaktif' }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 align-top">
+                                    <div class="font-medium">{{ $quiz->creator?->name ?? '-' }}</div>
+                                </td>
+                                <td class="px-4 py-3 align-top">
                                     <div class="flex items-center gap-3">
-                                        <a href="{{ url('/admin/quizzes/'.$quiz->id) }}" class="underline underline-offset-2">Detail</a>
-                                        <a href="{{ url('/admin/quizzes/'.$quiz->id.'/edit') }}" class="underline underline-offset-2">Edit</a>
-                                        <button type="button" class="underline underline-offset-2 text-red-600 dark:text-red-400" onclick="document.getElementById('delete-quiz-{{ $quiz->id }}').showModal()">
+                                        <a href="{{ url('/admin/quizzes/'.$quiz->id) }}" class="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-900 hover:bg-blue-100">
+                                            Detail
+                                        </a>
+                                        <a href="{{ url('/admin/quizzes/'.$quiz->id.'/edit') }}" class="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-900 hover:bg-amber-100">
+                                            Edit
+                                        </a>
+                                        <button type="button" class="inline-flex items-center rounded-md border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-semibold text-rose-900 hover:bg-rose-100" onclick="document.getElementById('delete-quiz-{{ $quiz->id }}').showModal()">
                                             Hapus
                                         </button>
                                     </div>

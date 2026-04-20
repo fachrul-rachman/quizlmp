@@ -13,7 +13,7 @@
 
     <div class="mb-4 flex items-center justify-between gap-3">
         <div class="text-lg font-semibold">Kategori Quiz</div>
-        <a href="{{ url('/admin/quiz-categories/create') }}" class="rounded-md bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
+        <a href="{{ url('/admin/quiz-categories/create') }}" class="rounded-md bg-blue-900 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
             Tambah Kategori
         </a>
     </div>
@@ -24,7 +24,7 @@
             <input name="search" value="{{ $search }}" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
         </div>
         <div class="flex items-end gap-2">
-            <button type="submit" class="rounded-md bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
+            <button type="submit" class="rounded-md bg-blue-900 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
                 Filter
             </button>
             <a href="{{ url('/admin/quiz-categories') }}" class="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800/40">
@@ -49,15 +49,22 @@
                     </thead>
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                         @foreach ($categories as $category)
-                            <tr>
-                                <td class="px-4 py-3 font-medium">{{ $category->name }}</td>
-                                <td class="px-4 py-3">{{ $category->quizzes_count }}</td>
-                                <td class="px-4 py-3">{{ optional($category->created_at)->format('d M Y H:i') ?: '-' }}</td>
-                                <td class="px-4 py-3">
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 align-top">
+                                    <div class="font-semibold">{{ $category->name }}</div>
+                                </td>
+                                <td class="px-4 py-3 align-top">
+                                    <div class="font-medium">{{ $category->quizzes_count }}</div>
+                                </td>
+                                <td class="px-4 py-3 align-top">
+                                    <div class="text-sm font-medium">{{ optional($category->created_at)->format('d M Y') ?: '-' }}</div>
+                                    <div class="text-xs text-slate-500">{{ optional($category->created_at)->format('H:i') ?: '' }}</div>
+                                </td>
+                                <td class="px-4 py-3 align-top">
                                     <div class="flex items-center gap-3">
-                                        <a href="{{ url('/admin/quiz-categories/'.$category->id.'/edit') }}" class="underline underline-offset-2">Edit</a>
+                                        <a href="{{ url('/admin/quiz-categories/'.$category->id.'/edit') }}" class="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-900 hover:bg-amber-100">Edit</a>
                                         @if ($category->quizzes_count === 0)
-                                            <button type="button" class="text-red-600 underline underline-offset-2 dark:text-red-400" onclick="document.getElementById('delete-category-{{ $category->id }}').showModal()">
+                                            <button type="button" class="inline-flex items-center rounded-md border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-semibold text-rose-900 hover:bg-rose-100" onclick="document.getElementById('delete-category-{{ $category->id }}').showModal()">
                                                 Hapus
                                             </button>
                                         @else

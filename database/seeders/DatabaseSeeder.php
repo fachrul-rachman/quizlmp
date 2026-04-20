@@ -14,24 +14,33 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::updateOrCreate(
-            ['email' => 'superadmin@local.test'],
+        $users = [
             [
+                'email' => 'superadmin@lestari.com',
                 'name' => 'Super Admin',
-                'password' => Hash::make('password'),
                 'role' => 'super_admin',
-                'is_active' => true,
-            ]
-        );
-
-        User::updateOrCreate(
-            ['email' => 'admin1@local.test'],
+            ],
             [
-                'name' => 'Admin 1',
-                'password' => Hash::make('password'),
+                'email' => 'admin@lestari.com',
+                'name' => 'Admin',
                 'role' => 'admin',
-                'is_active' => true,
-            ]
-        );
+            ],
+        ];
+
+        foreach ($users as $u) {
+            $user = User::withTrashed()->updateOrCreate(
+                ['email' => $u['email']],
+                [
+                    'name' => $u['name'],
+                    'password' => Hash::make('password'),
+                    'role' => $u['role'],
+                    'is_active' => true,
+                ]
+            );
+
+            if ($user->trashed()) {
+                $user->restore();
+            }
+        }
     }
 }

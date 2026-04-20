@@ -7,13 +7,14 @@
         'expired' => 'Kedaluwarsa',
         default => $status,
     })
-    @php($linkStatusClass = fn (string $status): string => match ($status) {
-        'unused' => 'bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200',
-        'opened' => 'bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-200',
-        'in_progress' => 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200',
-        'submitted' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200',
-        'expired' => 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200',
-        default => 'bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200',
+    @php($badgeBase = 'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold')
+    @php($linkStatusClass = fn (string $status): string => $badgeBase.' '.match ($status) {
+        'unused' => 'border-slate-200 bg-slate-100 text-slate-700',
+        'opened' => 'border-sky-200 bg-sky-50 text-sky-800',
+        'in_progress' => 'border-amber-200 bg-amber-50 text-amber-800',
+        'submitted' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
+        'expired' => 'border-rose-200 bg-rose-50 text-rose-800',
+        default => 'border-slate-200 bg-slate-100 text-slate-700',
     })
     @if (session('success'))
         <div class="mb-4 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800 dark:border-green-900/50 dark:bg-green-950/30 dark:text-green-200">
@@ -55,7 +56,7 @@
         </div>
 
         <div class="sm:col-span-4 flex gap-2">
-            <button type="submit" class="rounded-md bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
+            <button type="submit" class="rounded-md bg-blue-900 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
                 Filter
             </button>
             <a href="{{ url('/admin/links') }}" class="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800/40">
@@ -73,6 +74,9 @@
                     <thead class="bg-zinc-50 text-zinc-600 dark:bg-zinc-900/40 dark:text-zinc-300">
                         <tr>
                             <th class="px-4 py-2 text-left font-medium">Nama Quiz</th>
+                            <th class="px-4 py-2 text-left font-medium">Tipe</th>
+                            <th class="px-4 py-2 text-left font-medium">Expired</th>
+                            <th class="px-4 py-2 text-left font-medium">Attempt</th>
                             <th class="px-4 py-2 text-left font-medium">Token</th>
                             <th class="px-4 py-2 text-left font-medium">Status</th>
                             <th class="px-4 py-2 text-left font-medium">Opened At</th>
@@ -85,21 +89,48 @@
                         @foreach ($links as $link)
                             @php($baseUrl = rtrim((string) config('app.url'), '/'))
                             @php($url = $baseUrl !== '' ? $baseUrl.'/quiz/'.$link->token : url('/quiz/'.$link->token))
-                            <tr>
-                                <td class="px-4 py-2">{{ $link->quiz?->title ?? '-' }}</td>
-                                <td class="px-4 py-2 font-mono">{{ $link->token }}</td>
-                                <td class="px-4 py-2">
-                                    <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium {{ $linkStatusClass((string) $link->status) }}">
+                            @php($qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data='.urlencode($url))
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 align-top">
+                                    <div class="font-semibold">{{ $link->quiz?->title ?? '-' }}</div>
+                                </td>
+                                <td class="px-4 py-3 align-top">
+                                    <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                                        {{ $link->usage_type === 'multi' ? 'Multi-use' : 'Single-use' }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 align-top text-sm">
+                                    <div class="font-medium">{{ optional($link->expires_at)->format('d M Y') ?: '-' }}</div>
+                                    <div class="text-xs text-slate-500">{{ optional($link->expires_at)->format('H:i:s') ?: '' }}</div>
+                                </td>
+                                <td class="px-4 py-3 align-top">
+                                    <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                                        {{ (int) ($link->attempts_count ?? 0) }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 align-top font-mono text-xs text-slate-700">{{ $link->token }}</td>
+                                <td class="px-4 py-3 align-top">
+                                    <span class="{{ $linkStatusClass((string) $link->status) }}">
                                         {{ $linkStatusLabel((string) $link->status) }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-2">{{ optional($link->opened_at)->format('d M Y H:i:s') ?: '-' }}</td>
-                                <td class="px-4 py-2">{{ optional($link->started_at)->format('d M Y H:i:s') ?: '-' }}</td>
-                                <td class="px-4 py-2">{{ optional($link->submitted_at)->format('d M Y H:i:s') ?: '-' }}</td>
-                                <td class="px-4 py-2">
+                                <td class="px-4 py-3 align-top text-sm">
+                                    <div class="font-medium">{{ optional($link->opened_at)->format('d M Y') ?: '-' }}</div>
+                                    <div class="text-xs text-slate-500">{{ optional($link->opened_at)->format('H:i:s') ?: '' }}</div>
+                                </td>
+                                <td class="px-4 py-3 align-top text-sm">
+                                    <div class="font-medium">{{ optional($link->started_at)->format('d M Y') ?: '-' }}</div>
+                                    <div class="text-xs text-slate-500">{{ optional($link->started_at)->format('H:i:s') ?: '' }}</div>
+                                </td>
+                                <td class="px-4 py-3 align-top text-sm">
+                                    <div class="font-medium">{{ optional($link->submitted_at)->format('d M Y') ?: '-' }}</div>
+                                    <div class="text-xs text-slate-500">{{ optional($link->submitted_at)->format('H:i:s') ?: '' }}</div>
+                                </td>
+                                <td class="px-4 py-3 align-top">
                                     <div class="flex items-center gap-3">
-                                        <button type="button" class="underline underline-offset-2" onclick="copyText('{{ $url }}')">Copy Link</button>
-                                        <a href="{{ url('/admin/links/'.$link->id) }}" class="underline underline-offset-2">Detail</a>
+                                        <button type="button" class="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" onclick="copyText('{{ $url }}')">Copy Link</button>
+                                        <a href="{{ $qrUrl }}" target="_blank" rel="noreferrer" class="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-900 hover:bg-blue-100">QR</a>
+                                        <a href="{{ url('/admin/links/'.$link->id) }}" class="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-900 hover:bg-blue-100">Detail</a>
                                     </div>
                                 </td>
                             </tr>

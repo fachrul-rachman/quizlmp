@@ -49,7 +49,11 @@
             </div>
             <div>
                 <div class="text-sm text-zinc-500 dark:text-zinc-400">Status</div>
-                <div class="mt-1 font-semibold">{{ $quiz->is_active ? 'Aktif' : 'Nonaktif' }}</div>
+                <div class="mt-1">
+                    <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold {{ $quiz->is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-slate-100 text-slate-700' }}">
+                        {{ $quiz->is_active ? 'Aktif' : 'Nonaktif' }}
+                    </span>
+                </div>
             </div>
             <div>
                 <div class="text-sm text-zinc-500 dark:text-zinc-400">Dibuat Oleh</div>
@@ -76,7 +80,7 @@
                         <div class="flex flex-wrap items-center justify-between gap-3">
                             <div class="font-semibold">Soal {{ $q->order_number }}</div>
                             <div class="text-sm text-zinc-600 dark:text-zinc-300">
-                                {{ $q->question_type === 'short_answer' ? 'Short Answer' : 'Multiple Choice' }} • {{ $q->is_active ? 'Aktif' : 'Nonaktif' }}
+                                {{ $q->question_type === 'short_answer' ? 'Short Answer' : 'Multiple Choice' }} | {{ $q->is_active ? 'Aktif' : 'Nonaktif' }}
                             </div>
                         </div>
 
@@ -95,7 +99,7 @@
                                 @foreach ($q->options as $opt)
                                     <div class="rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
                                         <div class="text-sm font-semibold">
-                                            {{ $opt->option_key }} @if($opt->is_correct)• Benar @endif
+                                            {{ $opt->option_key }} @if($opt->is_correct) - Benar @endif
                                         </div>
                                         @if (filled($opt->option_text))
                                             <div class="mt-2 whitespace-pre-line text-sm">{{ $opt->option_text }}</div>

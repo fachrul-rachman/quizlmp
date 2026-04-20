@@ -18,6 +18,7 @@ class AdminQuizLinkController extends Controller
 
         $query = QuizLink::query()
             ->with('quiz:id,title')
+            ->withCount('attempts')
             ->orderByDesc('id');
 
         if ($search !== '') {
@@ -50,11 +51,30 @@ class AdminQuizLinkController extends Controller
 
     public function show(QuizLink $quizLink): View
     {
-        $quizLink->load(['quiz:id,title', 'creator:id,name', 'attempt']);
+        $quizLink->load([
+            'quiz:id,title',
+            'creator:id,name',
+            'attempt',
+            'attempts' => function ($query) {
+                $query
+                    ->select([
+                        'id',
+                        'quiz_link_id',
+                        'participant_name',
+                        'participant_applied_for',
+                        'started_at',
+                        'submitted_at',
+                        'status',
+                    ])
+                    ->with([
+                        'result:id,quiz_attempt_id,score_percentage,grade_letter,grade_label',
+                    ])
+                    ->orderByDesc('id');
+            },
+        ]);
 
         return view('admin.links.show', [
             'link' => $quizLink,
         ]);
     }
 }
-

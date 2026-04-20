@@ -1,13 +1,19 @@
 <x-layouts.admin title="Detail Hasil">
     @php($resultStatusLabel = fn (string $status): string => $status === 'auto_submitted' ? 'Selesai Otomatis' : 'Selesai')
-    @php($resultStatusClass = fn (string $status): string => $status === 'auto_submitted'
-        ? 'bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-200'
-        : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200')
+    @php($badgeBase = 'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold')
+    @php($resultStatusClass = fn (string $status): string => $badgeBase.' '.($status === 'auto_submitted'
+        ? 'border-orange-200 bg-orange-50 text-orange-800'
+        : 'border-emerald-200 bg-emerald-50 text-emerald-800'))
     @php($answerStatusLabel = fn (string $status): string => match ($status) {
         'correct' => 'Benar',
         'wrong' => 'Salah',
         'unanswered' => 'Belum Dijawab',
         default => $status,
+    })
+    @php($answerStatusClass = fn (string $status): string => $badgeBase.' '.match ($status) {
+        'correct' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
+        'wrong' => 'border-rose-200 bg-rose-50 text-rose-800',
+        default => 'border-slate-200 bg-slate-100 text-slate-700',
     })
     <div class="flex items-center justify-between gap-3 mb-4">
         <div class="text-lg font-semibold">Detail Hasil</div>
@@ -35,7 +41,7 @@
                     <div>
                         <div class="text-sm text-zinc-500 dark:text-zinc-400">Status</div>
                         <div class="mt-1">
-                            <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium {{ $resultStatusClass((string) $result->result_status) }}">
+                            <span class="{{ $resultStatusClass((string) $result->result_status) }}">
                                 {{ $resultStatusLabel((string) $result->result_status) }}
                             </span>
                         </div>
@@ -58,10 +64,7 @@
                         <div class="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
                             <div class="flex flex-wrap items-center justify-between gap-3">
                                 <div class="font-semibold">Soal {{ $row['no'] }}</div>
-                                <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium
-                                    @if ($row['status'] === 'correct') bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200
-                                    @elseif ($row['status'] === 'wrong') bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200
-                                    @else bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 @endif">
+                                <span class="{{ $answerStatusClass((string) $row['status']) }}">
                                     {{ $answerStatusLabel((string) $row['status']) }}
                                 </span>
                             </div>
@@ -160,7 +163,7 @@
                         <div class="text-zinc-500 dark:text-zinc-400">Google Drive</div>
                         <div class="mt-1">
                             @if ($pdf?->google_drive_url)
-                                <a href="{{ $pdf->google_drive_url }}" target="_blank" rel="noreferrer" class="underline underline-offset-2">Buka File di Google Drive</a>
+                                <a href="{{ $pdf->google_drive_url }}" target="_blank" rel="noreferrer" class="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-900 hover:bg-blue-100">Buka File di Google Drive</a>
                             @else
                                 <span>-</span>
                             @endif

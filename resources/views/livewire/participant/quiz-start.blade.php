@@ -23,12 +23,28 @@
 
         <div class="mb-4 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/20 dark:text-blue-100">
             <div class="font-semibold">Sebelum mulai</div>
-            <div class="mt-1">Timer mulai saat Anda menekan tombol <span class="font-semibold">Mulai Test</span>.</div>
-            <div class="mt-1">Identitas bisa disimpan lebih dulu, tetapi test belum berjalan sampai tombol mulai ditekan.</div>
-            <div class="mt-1">Pastikan koneksi stabil dan jawab semua soal agar tombol submit aktif.</div>
-            @if ($instantFeedbackEnabled)
-                <div class="mt-1">Mode jawaban instan aktif: setiap soal pilihan ganda hanya bisa dijawab satu kali dan hasil benar atau salah langsung terlihat.</div>
-            @endif
+            <ul class="mt-2 space-y-1.5 text-sm">
+                <li class="flex gap-2">
+                    <span class="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-blue-900">✓</span>
+                    <span>Timer mulai saat Anda menekan tombol <span class="font-semibold">Mulai Test</span>.</span>
+                </li>
+                <li class="flex gap-2">
+                    <span class="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-blue-900">✓</span>
+                    <span>Tidak ada tombol kembali atau nomor soal. Setelah klik <span class="font-semibold">Jawab</span>, otomatis lanjut ke soal berikutnya.</span>
+                </li>
+                <li class="flex gap-2">
+                    <span class="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-blue-900">✓</span>
+                    <span>Jawaban yang sudah dikirim per soal dianggap final (tidak bisa diubah).</span>
+                </li>
+                <li class="flex gap-2">
+                    <span class="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-blue-900">✓</span>
+                    <span>Jika waktu habis, test akan selesai otomatis.</span>
+                </li>
+                <li class="flex gap-2">
+                    <span class="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-blue-900">✓</span>
+                    <span>Anda bisa klik <span class="font-semibold">Simpan Identitas</span> dulu. Test belum berjalan sampai tombol mulai ditekan.</span>
+                </li>
+            </ul>
         </div>
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -49,7 +65,7 @@
         </div>
 
         <div class="mt-5 flex items-center gap-2">
-            <button type="button" wire:click="startTest" class="rounded-md bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
+            <button type="button" wire:click="startTest" class="rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">
                 Mulai Test
             </button>
             <button type="button" wire:click="saveIdentity" class="rounded-md border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800/40">
