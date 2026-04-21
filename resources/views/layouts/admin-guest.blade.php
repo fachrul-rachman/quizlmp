@@ -12,7 +12,7 @@
             <div class="w-full max-w-md">
                 <div class="flex items-center justify-center mb-6">
                     <a href="{{ url('/admin/login') }}" class="inline-flex items-center gap-2">
-                        <x-app-logo-icon class="h-8 w-8" />
+                        <x-app-logo-icon class="h-12 w-12 object-contain" />
                         <span class="font-semibold text-lg">{{ config('app.name') }}</span>
                     </a>
                 </div>

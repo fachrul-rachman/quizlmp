@@ -13,7 +13,7 @@
             <aside class="hidden lg:block lg:w-64 lg:flex-none border-e border-zinc-200 bg-white">
                 <div class="px-4 py-4 border-b border-zinc-200">
                     <a href="{{ url('/admin/dashboard') }}" class="inline-flex items-center gap-2">
-                        <x-app-logo-icon class="h-7 w-7" />
+                        <x-app-logo-icon class="h-9 w-9 object-contain" />
                         <span class="font-semibold">{{ config('app.name') }}</span>
                     </a>
                 </div>

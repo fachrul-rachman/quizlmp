@@ -96,3 +96,4 @@ Aturan dokumen ini:
      - Hasil lama tetap bisa dibuka
      - Multi-use baru mengikuti aturan attempt/expired/summary
    - Selesai jika: deploy aman tanpa merusak operasi yang sudah berjalan
+  

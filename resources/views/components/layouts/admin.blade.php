@@ -24,7 +24,7 @@
         <aside class="lg:hidden fixed inset-y-0 left-0 z-50 w-80 max-w-[85vw] -translate-x-full border-e border-zinc-200 bg-white transition peer-checked:translate-x-0">
                 <div class="px-4 py-4 border-b border-zinc-200 flex items-center justify-between gap-3">
                     <a href="{{ url('/admin/dashboard') }}" class="inline-flex items-center gap-2">
-                        <x-app-logo-icon class="h-7 w-7" />
+                        <x-app-logo-icon class="h-9 w-9 object-contain" />
                         <span class="font-semibold">{{ config('app.name') }}</span>
                     </a>
                     <label for="admin-mobile-nav" class="cursor-pointer rounded-md p-2 hover:bg-slate-100" aria-label="Tutup menu">
@@ -114,7 +114,7 @@
             <aside class="hidden lg:block lg:w-64 lg:flex-none border-e border-zinc-200 bg-white">
                 <div class="px-4 py-4 border-b border-zinc-200">
                     <a href="{{ url('/admin/dashboard') }}" class="inline-flex items-center gap-2">
-                        <x-app-logo-icon class="h-7 w-7" />
+                        <x-app-logo-icon class="h-9 w-9 object-contain" />
                         <span class="font-semibold">{{ config('app.name') }}</span>
                     </a>
                 </div>
