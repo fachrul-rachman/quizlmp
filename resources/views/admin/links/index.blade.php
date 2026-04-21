@@ -1,21 +1,27 @@
 <x-layouts.admin title="Daftar Link">
-    @php($linkStatusLabel = fn (string $status): string => match ($status) {
-        'unused' => 'Belum Dibuka',
-        'opened' => 'Sudah Dibuka',
-        'in_progress' => 'Sedang Dikerjakan',
-        'submitted' => 'Selesai',
-        'expired' => 'Kedaluwarsa',
-        default => $status,
-    })
-    @php($badgeBase = 'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold')
-    @php($linkStatusClass = fn (string $status): string => $badgeBase.' '.match ($status) {
-        'unused' => 'border-slate-200 bg-slate-100 text-slate-700',
-        'opened' => 'border-sky-200 bg-sky-50 text-sky-800',
-        'in_progress' => 'border-amber-200 bg-amber-50 text-amber-800',
-        'submitted' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
-        'expired' => 'border-rose-200 bg-rose-50 text-rose-800',
-        default => 'border-slate-200 bg-slate-100 text-slate-700',
-    })
+    @php
+        $linkStatusLabel = fn (string $status): string => match ($status) {
+            'unused' => 'Belum Dibuka',
+            'opened' => 'Sudah Dibuka',
+            'in_progress' => 'Sedang Dikerjakan',
+            'submitted' => 'Selesai',
+            'expired' => 'Kedaluwarsa',
+            default => $status,
+        };
+    @endphp
+    @php
+        $badgeBase = 'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold';
+    @endphp
+    @php
+        $linkStatusClass = fn (string $status): string => $badgeBase.' '.match ($status) {
+            'unused' => 'border-slate-200 bg-slate-100 text-slate-700',
+            'opened' => 'border-sky-200 bg-sky-50 text-sky-800',
+            'in_progress' => 'border-amber-200 bg-amber-50 text-amber-800',
+            'submitted' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
+            'expired' => 'border-rose-200 bg-rose-50 text-rose-800',
+            default => 'border-slate-200 bg-slate-100 text-slate-700',
+        };
+    @endphp
     @if (session('success'))
         <div class="mb-4 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800 dark:border-green-900/50 dark:bg-green-950/30 dark:text-green-200">
             {{ session('success') }}
@@ -87,9 +93,11 @@
                     </thead>
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                         @foreach ($links as $link)
-                            @php($baseUrl = rtrim((string) config('app.url'), '/'))
-                            @php($url = $baseUrl !== '' ? $baseUrl.'/quiz/'.$link->token : url('/quiz/'.$link->token))
-                            @php($qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data='.urlencode($url))
+                                @php
+                                    $baseUrl = rtrim((string) config('app.url'), '/');
+                                    $url = $baseUrl !== '' ? $baseUrl.'/quiz/'.$link->token : url('/quiz/'.$link->token);
+                                    $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data='.urlencode($url);
+                                @endphp
                             <tr class="hover:bg-slate-50">
                                 <td class="px-4 py-3 align-top">
                                     <div class="font-semibold">{{ $link->quiz?->title ?? '-' }}</div>

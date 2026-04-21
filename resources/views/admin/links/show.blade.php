@@ -1,25 +1,31 @@
 <x-layouts.admin title="Link Detail">
-    @php($linkStatusLabel = fn (string $status): string => match ($status) {
-        'unused' => 'Belum Dibuka',
-        'opened' => 'Sudah Dibuka',
-        'in_progress' => 'Sedang Dikerjakan',
-        'submitted' => 'Selesai',
-        'expired' => 'Kedaluwarsa',
-        'not_started' => 'Belum Mulai',
-        'auto_submitted' => 'Selesai Otomatis',
-        default => $status,
-    })
-    @php($badgeBase = 'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold')
-    @php($linkStatusClass = fn (string $status): string => $badgeBase.' '.match ($status) {
-        'unused' => 'border-slate-200 bg-slate-100 text-slate-700',
-        'opened' => 'border-sky-200 bg-sky-50 text-sky-800',
-        'in_progress' => 'border-amber-200 bg-amber-50 text-amber-800',
-        'submitted' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
-        'expired' => 'border-rose-200 bg-rose-50 text-rose-800',
-        'not_started' => 'border-slate-200 bg-slate-100 text-slate-700',
-        'auto_submitted' => 'border-orange-200 bg-orange-50 text-orange-800',
-        default => 'border-slate-200 bg-slate-100 text-slate-700',
-    })
+    @php
+        $linkStatusLabel = fn (string $status): string => match ($status) {
+            'unused' => 'Belum Dibuka',
+            'opened' => 'Sudah Dibuka',
+            'in_progress' => 'Sedang Dikerjakan',
+            'submitted' => 'Selesai',
+            'expired' => 'Kedaluwarsa',
+            'not_started' => 'Belum Mulai',
+            'auto_submitted' => 'Selesai Otomatis',
+            default => $status,
+        };
+    @endphp
+    @php
+        $badgeBase = 'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold';
+    @endphp
+    @php
+        $linkStatusClass = fn (string $status): string => $badgeBase.' '.match ($status) {
+            'unused' => 'border-slate-200 bg-slate-100 text-slate-700',
+            'opened' => 'border-sky-200 bg-sky-50 text-sky-800',
+            'in_progress' => 'border-amber-200 bg-amber-50 text-amber-800',
+            'submitted' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
+            'expired' => 'border-rose-200 bg-rose-50 text-rose-800',
+            'not_started' => 'border-slate-200 bg-slate-100 text-slate-700',
+            'auto_submitted' => 'border-orange-200 bg-orange-50 text-orange-800',
+            default => 'border-slate-200 bg-slate-100 text-slate-700',
+        };
+    @endphp
     <div class="flex items-center justify-between gap-3 mb-4">
         <div class="text-lg font-semibold">Link Detail</div>
         <a href="{{ url('/admin/links') }}" class="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800/40">
@@ -27,8 +33,10 @@
         </a>
     </div>
 
-    @php($baseUrl = rtrim((string) config('app.url'), '/'))
-    @php($url = $baseUrl !== '' ? $baseUrl.'/quiz/'.$link->token : url('/quiz/'.$link->token))
+            @php
+                $baseUrl = rtrim((string) config('app.url'), '/');
+                $url = $baseUrl !== '' ? $baseUrl.'/quiz/'.$link->token : url('/quiz/'.$link->token);
+            @endphp
 
     <div class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -109,7 +117,9 @@
                         </thead>
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                             @foreach ($link->attempts as $idx => $attempt)
-                                @php($result = $attempt->result)
+        @php
+            $result = $attempt->result;
+        @endphp
                                 <tr class="hover:bg-slate-50">
                                     <td class="px-4 py-3 align-top">{{ $idx + 1 }}</td>
                                     <td class="px-4 py-3 align-top">

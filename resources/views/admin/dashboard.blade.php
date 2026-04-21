@@ -1,9 +1,13 @@
 <x-layouts.admin title="Dashboard">
-    @php($resultStatusLabel = fn (string $status): string => $status === 'auto_submitted' ? 'Selesai Otomatis' : 'Selesai')
-    @php($badgeBase = 'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold')
-    @php($resultStatusClass = fn (string $status): string => $badgeBase.' '.($status === 'auto_submitted'
-        ? 'border-orange-200 bg-orange-50 text-orange-800'
-        : 'border-emerald-200 bg-emerald-50 text-emerald-800'))
+    @php
+        $resultStatusLabel = fn (string $status): string => $status === 'auto_submitted' ? 'Selesai Otomatis' : 'Selesai';
+        $badgeBase = 'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold';
+    @endphp
+    @php
+        $resultStatusClass = fn (string $status): string => $badgeBase.' '.($status === 'auto_submitted'
+            ? 'border-orange-200 bg-orange-50 text-orange-800'
+            : 'border-emerald-200 bg-emerald-50 text-emerald-800');
+    @endphp
     @if (session('success'))
         <div class="mb-4 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800 dark:border-green-900/50 dark:bg-green-950/30 dark:text-green-200">
             {{ session('success') }}
@@ -96,7 +100,9 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 align-top">
-                                    @php($calculatedAt = \Illuminate\Support\Carbon::parse($row->calculated_at))
+                        @php
+                            $calculatedAt = \Illuminate\Support\Carbon::parse($row->calculated_at);
+                        @endphp
                                     <div class="text-sm font-medium">{{ $calculatedAt->format('d M Y') }}</div>
                                     <div class="text-xs text-slate-500">{{ $calculatedAt->format('H:i:s') }}</div>
                                 </td>

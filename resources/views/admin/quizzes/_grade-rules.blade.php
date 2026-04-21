@@ -1,4 +1,6 @@
-@php($letters = $gradeLetters ?? ['A', 'B', 'C', 'D', 'E'])
+@php
+    $letters = $gradeLetters ?? ['A', 'B', 'C', 'D', 'E'];
+@endphp
 
 <div class="mt-6">
     <div class="text-sm font-semibold mb-2">Aturan Grade</div>
@@ -62,4 +64,3 @@
         </table>
     </div>
 </div>
-

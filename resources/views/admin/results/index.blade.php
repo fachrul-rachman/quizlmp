@@ -1,9 +1,13 @@
 <x-layouts.admin title="Daftar Hasil">
-    @php($resultStatusLabel = fn (string $status): string => $status === 'auto_submitted' ? 'Selesai Otomatis' : 'Selesai')
-    @php($badgeBase = 'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold')
-    @php($resultStatusClass = fn (string $status): string => $badgeBase.' '.($status === 'auto_submitted'
-        ? 'border-orange-200 bg-orange-50 text-orange-800'
-        : 'border-emerald-200 bg-emerald-50 text-emerald-800'))
+    @php
+        $resultStatusLabel = fn (string $status): string => $status === 'auto_submitted' ? 'Selesai Otomatis' : 'Selesai';
+        $badgeBase = 'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold';
+    @endphp
+    @php
+        $resultStatusClass = fn (string $status): string => $badgeBase.' '.($status === 'auto_submitted'
+            ? 'border-orange-200 bg-orange-50 text-orange-800'
+            : 'border-emerald-200 bg-emerald-50 text-emerald-800');
+    @endphp
     <div class="flex items-center justify-between gap-3 mb-4">
         <div class="text-lg font-semibold">Daftar Hasil</div>
     </div>
@@ -59,9 +63,11 @@
                     </thead>
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                         @foreach ($rows as $row)
-                            @php($result = $row['result'])
-                            @php($attempt = $result->attempt)
-                            @php($pdf = $row['pdf'])
+                    @php
+                        $result = $row['result'];
+                        $attempt = $result->attempt;
+                        $pdf = $row['pdf'];
+                    @endphp
                             <tr class="hover:bg-slate-50">
                                 <td class="px-4 py-3 align-top">
                                     <div class="font-medium">{{ $attempt?->participant_name ?? '-' }}</div>

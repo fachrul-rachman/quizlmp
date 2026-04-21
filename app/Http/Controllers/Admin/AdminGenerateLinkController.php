@@ -43,7 +43,7 @@ class AdminGenerateLinkController extends Controller
             'quiz_id' => ['required', 'integer', 'exists:quizzes,id'],
             'count' => ['required', 'integer', 'min:1'],
             'usage_type' => ['required', 'in:single,multi'],
-            'expires_in_hours' => ['required_if:usage_type,multi', 'integer', 'min:1'],
+            'expires_in_hours' => ['exclude_if:usage_type,single', 'required_if:usage_type,multi', 'integer', 'min:1'],
         ], [
             'quiz_id.required' => 'Pilih Quiz wajib diisi.',
             'count.required' => 'Jumlah Link wajib diisi.',

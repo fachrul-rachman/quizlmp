@@ -1,20 +1,24 @@
 <x-layouts.admin title="Detail Hasil">
-    @php($resultStatusLabel = fn (string $status): string => $status === 'auto_submitted' ? 'Selesai Otomatis' : 'Selesai')
-    @php($badgeBase = 'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold')
-    @php($resultStatusClass = fn (string $status): string => $badgeBase.' '.($status === 'auto_submitted'
-        ? 'border-orange-200 bg-orange-50 text-orange-800'
-        : 'border-emerald-200 bg-emerald-50 text-emerald-800'))
-    @php($answerStatusLabel = fn (string $status): string => match ($status) {
-        'correct' => 'Benar',
-        'wrong' => 'Salah',
-        'unanswered' => 'Belum Dijawab',
-        default => $status,
-    })
-    @php($answerStatusClass = fn (string $status): string => $badgeBase.' '.match ($status) {
-        'correct' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
-        'wrong' => 'border-rose-200 bg-rose-50 text-rose-800',
-        default => 'border-slate-200 bg-slate-100 text-slate-700',
-    })
+    @php
+        $resultStatusLabel = fn (string $status): string => $status === 'auto_submitted' ? 'Selesai Otomatis' : 'Selesai';
+        $badgeBase = 'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold';
+        $resultStatusClass = fn (string $status): string => $badgeBase.' '.($status === 'auto_submitted'
+            ? 'border-orange-200 bg-orange-50 text-orange-800'
+            : 'border-emerald-200 bg-emerald-50 text-emerald-800');
+
+        $answerStatusLabel = fn (string $status): string => match ($status) {
+            'correct' => 'Benar',
+            'wrong' => 'Salah',
+            'unanswered' => 'Belum Dijawab',
+            default => $status,
+        };
+
+        $answerStatusClass = fn (string $status): string => $badgeBase.' '.match ($status) {
+            'correct' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
+            'wrong' => 'border-rose-200 bg-rose-50 text-rose-800',
+            default => 'border-slate-200 bg-slate-100 text-slate-700',
+        };
+    @endphp
     <div class="flex items-center justify-between gap-3 mb-4">
         <div class="text-lg font-semibold">Detail Hasil</div>
         <a href="{{ url('/admin/results') }}" class="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800/40">

@@ -36,7 +36,9 @@
         <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div class="sm:col-span-2">
                 <div class="block text-sm font-medium mb-1">Tipe Link</div>
-                @php($usageType = old('usage_type', 'single'))
+            @php
+                $usageType = old('usage_type', 'single');
+            @endphp
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
                     <label class="inline-flex items-center gap-2 text-sm">
                         <input type="radio" name="usage_type" value="single" @checked($usageType === 'single') />
@@ -54,7 +56,7 @@
 
             <div id="expiresHoursWrap" style="display: {{ $usageType === 'multi' ? 'block' : 'none' }};">
                 <label class="block text-sm font-medium mb-1">Expired (jam)</label>
-                <input name="expires_in_hours" value="{{ old('expires_in_hours') }}" inputmode="numeric" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
+                <input id="expiresInHoursInput" name="expires_in_hours" value="{{ old('expires_in_hours') }}" inputmode="numeric" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
                 @error('expires_in_hours')
                     <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
                 @enderror
@@ -97,9 +99,11 @@
                     </thead>
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                         @foreach ($generatedLinks as $idx => $link)
-                            @php($baseUrl = rtrim((string) config('app.url'), '/'))
-                            @php($url = $baseUrl !== '' ? $baseUrl.'/quiz/'.$link->token : url('/quiz/'.$link->token))
-                            @php($qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data='.urlencode($url))
+                                @php
+                                    $baseUrl = rtrim((string) config('app.url'), '/');
+                                    $url = $baseUrl !== '' ? $baseUrl.'/quiz/'.$link->token : url('/quiz/'.$link->token);
+                                    $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data='.urlencode($url);
+                                @endphp
                             <tr>
                                 <td class="px-4 py-2">
                                     <input type="checkbox" class="generated-checkbox" value="{{ $url }}" checked />
@@ -125,13 +129,20 @@
         </div>
     @endif
 
-    <script>
+        <script>
         function syncExpiresVisibility() {
             const wrap = document.getElementById('expiresHoursWrap');
             if (!wrap) return;
+            const input = document.getElementById('expiresInHoursInput');
             const selected = document.querySelector('input[name="usage_type"]:checked');
             const isMulti = selected && selected.value === 'multi';
             wrap.style.display = isMulti ? 'block' : 'none';
+            if (input) {
+                input.disabled = !isMulti;
+                if (!isMulti) {
+                    input.value = '';
+                }
+            }
         }
         document.querySelectorAll('input[name="usage_type"]').forEach((el) => {
             el.addEventListener('change', syncExpiresVisibility);

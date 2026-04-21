@@ -24,9 +24,15 @@
                 <div class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">Melamar Untuk: {{ $participantAppliedFor }}</div>
             </div>
 
-            @php($isAmber = $secondsRemaining > 0 && $secondsRemaining <= 300)
-            @php($isRed = $secondsRemaining > 0 && $secondsRemaining <= 60)
-            @php($timerWrap = $isRed ? 'border-rose-200 bg-rose-50 text-rose-900' : ($isAmber ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-zinc-200 bg-zinc-50 text-zinc-900'))
+            @php
+                $isAmber = $secondsRemaining > 0 && $secondsRemaining <= 300;
+                $isRed = $secondsRemaining > 0 && $secondsRemaining <= 60;
+                $timerWrap = $isRed
+                    ? 'border-rose-200 bg-rose-50 text-rose-900'
+                    : ($isAmber
+                        ? 'border-amber-200 bg-amber-50 text-amber-900'
+                        : 'border-zinc-200 bg-zinc-50 text-zinc-900');
+            @endphp
             <div class="rounded-md border px-3 py-2 text-sm font-semibold {{ $timerWrap }}">
                 Sisa Waktu:
                 {{ $secondsRemaining >= 3600 ? gmdate('H:i:s', $secondsRemaining) : gmdate('i:s', $secondsRemaining) }}
@@ -132,7 +138,11 @@
 
             <div class="mt-4 flex items-center justify-between gap-3">
                 <div class="text-sm text-zinc-600 dark:text-zinc-300">Terjawab: {{ $answeredCount }}/{{ $totalQuestions }}</div>
-                @php($canAnswer = $currentQuestionType === 'multiple_choice' ? (bool) $selectedOptionId : (trim((string) $shortAnswerText) !== ''))
+                @php
+                    $canAnswer = $currentQuestionType === 'multiple_choice'
+                        ? (bool) $selectedOptionId
+                        : (trim((string) $shortAnswerText) !== '');
+                @endphp
                 <button
                     type="button"
                     wire:click="answerCurrent"

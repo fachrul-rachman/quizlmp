@@ -11,12 +11,14 @@
         @livewireStyles
     </head>
     <body class="min-h-screen bg-slate-50 text-zinc-900">
-        @php($user = auth()->user())
-        @php($navLinkClass = function (bool $active): string {
-            return $active
-                ? 'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold bg-blue-900 text-white'
-                : 'flex items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-100';
-        })
+        @php
+            $user = auth()->user();
+            $navLinkClass = function (bool $active): string {
+                return $active
+                    ? 'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold bg-blue-900 text-white'
+                    : 'flex items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-100';
+            };
+        @endphp
         <input id="admin-mobile-nav" type="checkbox" class="peer sr-only" />
 
         <label for="admin-mobile-nav" class="lg:hidden fixed inset-0 z-40 bg-black/40 opacity-0 pointer-events-none transition peer-checked:opacity-100 peer-checked:pointer-events-auto"></label>

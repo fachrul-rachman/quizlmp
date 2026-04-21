@@ -173,9 +173,21 @@ class QuizBuilder extends Component
 
     public function save(): void
     {
-        $this->validateBase();
-        $this->validateImages();
-        $this->validateQuestions();
+        try {
+            $this->validateBase();
+            $this->validateImages();
+            $this->validateQuestions();
+        } catch (ValidationException $e) {
+            $firstErrorKey = array_key_first($e->errors()) ?? null;
+
+            $this->dispatch(
+                'qb:validation-failed',
+                firstErrorKey: $firstErrorKey,
+                message: 'Ada yang perlu diperbaiki. Kamu akan diarahkan ke bagian yang bermasalah.',
+            );
+
+            throw $e;
+        }
 
         DB::transaction(function (): void {
             $quiz = $this->quizId

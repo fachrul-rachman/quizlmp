@@ -1,5 +1,7 @@
-@php($quizCategory = $quizCategory ?? null)
-@php($submitLabel = $submitLabel ?? 'Simpan')
+@php
+    $quizCategory = $quizCategory ?? null;
+    $submitLabel = $submitLabel ?? 'Simpan';
+@endphp
 
 @if (session('error'))
     <div class="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">

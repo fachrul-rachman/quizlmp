@@ -8,7 +8,9 @@
         </script>
     </head>
     <body class="min-h-screen bg-slate-50 text-zinc-900">
-        @php($user = auth()->user())
+    @php
+        $user = auth()->user();
+    @endphp
         <div class="min-h-screen lg:flex">
             <aside class="hidden lg:block lg:w-64 lg:flex-none border-e border-zinc-200 bg-white">
                 <div class="px-4 py-4 border-b border-zinc-200">

@@ -75,6 +75,42 @@
             color: var(--red);
             font-weight: 600;
         }
+        .qb .qb-spinner {
+            animation: qbSpin 0.9s linear infinite;
+        }
+        @keyframes qbSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .qb .toast {
+            position: fixed;
+            right: 16px;
+            top: 16px;
+            z-index: 9999;
+            background: #111827;
+            color: #fff;
+            border-radius: 12px;
+            padding: 12px 14px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+            font-size: 13px;
+            line-height: 1.35;
+            max-width: min(360px, calc(100vw - 32px));
+            opacity: 0;
+            transform: translateY(-8px);
+            pointer-events: none;
+            transition: opacity 0.16s ease, transform 0.16s ease;
+        }
+        .qb .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .qb .toast-title {
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+        .qb .toast-desc {
+            color: rgba(255,255,255,0.85);
+        }
         .qb .hint {
             font-size: 11.5px;
             color: var(--text-3);
@@ -721,6 +757,10 @@
     </style>
 
     <div class="main">
+        <div id="qb-toast" class="toast" role="status" aria-live="polite">
+            <div class="toast-title">Periksa lagi ya</div>
+            <div class="toast-desc">Ada input yang belum lengkap.</div>
+        </div>
 
         @if (session('success'))
             <div class="success">{{ session('success') }}</div>
@@ -731,7 +771,7 @@
         @enderror
 
         {{-- ─── INFORMASI QUIZ ─── --}}
-        <div class="section">
+        <div class="section" id="qb-section-info">
             <div class="section-header">
                 <div class="section-icon icon-blue">
                     <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="1.5" y="1.5" width="12" height="12" rx="2" stroke="#2D6BE4" stroke-width="1.3"/><path d="M4 5h7M4 7.5h7M4 10h4.5" stroke="#2D6BE4" stroke-width="1.3" stroke-linecap="round"/></svg>
@@ -767,7 +807,7 @@
         </div>
 
         {{-- ─── PENGATURAN ─── --}}
-        <div class="section">
+        <div class="section" id="qb-section-settings">
             <div class="section-header">
                 <div class="section-icon icon-amber">
                     <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 1.5a1.5 1.5 0 010 3 1.5 1.5 0 010-3zM2.5 6.5h10M4 10.5a1.5 1.5 0 010 3 1.5 1.5 0 010-3zM11 10.5a1.5 1.5 0 010 3 1.5 1.5 0 010-3z" stroke="#D97706" stroke-width="1.3" stroke-linecap="round"/></svg>
@@ -836,7 +876,7 @@
         </div>
 
         {{-- ─── IMPORT SOAL ─── --}}
-        <div class="section">
+        <div class="section" id="qb-section-import">
             <div class="section-header">
                 <div class="section-icon icon-teal">
                     <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 1v9M4.5 7l3 3 3-3" stroke="#0D9488" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.5 11v2h10v-2" stroke="#0D9488" stroke-width="1.3" stroke-linecap="round"/></svg>
@@ -876,7 +916,7 @@
         </div>
 
         {{-- ─── SOAL ─── --}}
-        <div class="section">
+        <div class="section" id="qb-section-questions">
             <div class="section-header">
                 <div class="section-icon icon-coral">
                     <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6" stroke="#DC4E2A" stroke-width="1.3"/><path d="M7.5 4.5v3.5" stroke="#DC4E2A" stroke-width="1.5" stroke-linecap="round"/><circle cx="7.5" cy="10" r="0.75" fill="#DC4E2A"/></svg>
@@ -894,7 +934,7 @@
                 <p class="soal-section-hint">Pastikan setiap soal pilihan ganda memiliki 1 jawaban benar yang jelas.</p>
 
                 @foreach ($questions as $qi => $q)
-                    <div class="soal-card">
+                    <div class="soal-card" id="qb-question-{{ $qi }}">
                         {{-- Soal Header --}}
                         <div class="soal-head">
                             <div class="soal-badge">
@@ -1073,12 +1113,79 @@
 
         {{-- ─── FOOTER ─── --}}
         <div class="footer">
-            <button type="button" wire:click="save" class="btn btn-primary">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l3.5 3.5 6.5-6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Simpan Quiz
+            <button
+                type="button"
+                wire:click="save"
+                wire:loading.attr="disabled"
+                wire:target="save"
+                class="btn btn-primary"
+            >
+                <span wire:loading.remove.flex wire:target="save" style="align-items:center;gap:8px">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l3.5 3.5 6.5-6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Simpan Quiz
+                </span>
+                <span wire:loading.flex wire:target="save" style="align-items:center;gap:8px">
+                    <svg class="qb-spinner" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 2a10 10 0 1 0 10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Menyimpan...
+                </span>
             </button>
             <a href="{{ url('/admin/quizzes') }}" class="btn">Kembali</a>
         </div>
 
     </div>
 </div>
+
+<script>
+    (function () {
+        function showToast(message) {
+            const el = document.getElementById('qb-toast');
+            if (!el) return;
+            const desc = el.querySelector('.toast-desc');
+            if (desc) desc.textContent = message || 'Ada input yang belum lengkap.';
+            el.classList.add('show');
+            window.clearTimeout(window.__qbToastTimer);
+            window.__qbToastTimer = window.setTimeout(() => el.classList.remove('show'), 3200);
+        }
+
+        function scrollToTarget(targetId) {
+            const el = document.getElementById(targetId);
+            if (!el) return false;
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return true;
+        }
+
+        window.addEventListener('qb:validation-failed', function (e) {
+            let detail = (e && e.detail) ? e.detail : {};
+            if (Array.isArray(detail) && detail[0] && typeof detail[0] === 'object') {
+                detail = detail[0];
+            }
+
+            const firstErrorKey = detail.firstErrorKey || null;
+            showToast(detail.message || 'Ada yang perlu diperbaiki. Kamu akan diarahkan ke bagian yang bermasalah.');
+
+            if (typeof firstErrorKey === 'string' && firstErrorKey.startsWith('questions.')) {
+                const match = firstErrorKey.match(/^questions\.(\d+)\./);
+                if (match) {
+                    scrollToTarget('qb-question-' + match[1]);
+                    return;
+                }
+                scrollToTarget('qb-section-questions');
+                return;
+            }
+
+            if (firstErrorKey === 'title' || firstErrorKey === 'description' || firstErrorKey === 'categoryId') {
+                scrollToTarget('qb-section-info');
+                return;
+            }
+
+            if (firstErrorKey === 'durationMinutes' || firstErrorKey === 'shuffleQuestions' || firstErrorKey === 'shuffleOptions' || firstErrorKey === 'instantFeedbackEnabled' || firstErrorKey === 'isActive') {
+                scrollToTarget('qb-section-settings');
+                return;
+            }
+
+            scrollToTarget('qb-section-info');
+        });
+    })();
+</script>
