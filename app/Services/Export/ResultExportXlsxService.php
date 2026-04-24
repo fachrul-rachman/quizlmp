@@ -3,6 +3,7 @@
 namespace App\Services\Export;
 
 use Carbon\CarbonImmutable;
+use App\Support\ParticipantAppliedForNormalizer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -147,7 +148,8 @@ class ResultExportXlsxService
 
         $jabatan = trim((string) ($filters['jabatan'] ?? ''));
         if ($jabatan !== '') {
-            $query->where('quiz_attempts.participant_applied_for', $jabatan);
+            $jabatan = ParticipantAppliedForNormalizer::normalize($jabatan);
+            $query->whereRaw('LOWER(quiz_attempts.participant_applied_for) = ?', [mb_strtolower($jabatan)]);
         }
 
         $status = (string) ($filters['status'] ?? '');

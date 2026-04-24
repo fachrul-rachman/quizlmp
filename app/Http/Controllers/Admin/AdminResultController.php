@@ -13,9 +13,11 @@ use App\Models\ResultPdf;
 use App\Models\ShortAnswerKey;
 use App\Services\Export\ResultExportXlsxService;
 use App\Support\DeterministicShuffle;
+use App\Support\ParticipantAppliedForNormalizer;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -29,7 +31,7 @@ class AdminResultController extends Controller
         $search = trim((string) $request->query('search', ''));
         $quizId = (string) $request->query('quiz_id', '');
         $status = (string) $request->query('status', 'all');
-        $jabatan = trim((string) $request->query('jabatan', ''));
+        $jabatan = ParticipantAppliedForNormalizer::normalize(trim((string) $request->query('jabatan', '')));
         [$startAt, $endAt] = $this->resolveSubmittedAtRange($request);
 
         $results = QuizResult::query()
@@ -57,7 +59,8 @@ class AdminResultController extends Controller
             ->when($quizId !== '', fn ($query) => $query->where('quiz_results.quiz_id', (int) $quizId))
             ->when($status !== 'all', fn ($query) => $query->where('quiz_results.result_status', $status))
             ->when($jabatan !== '', function ($query) use ($jabatan) {
-                $query->whereHas('attempt', fn ($q) => $q->where('participant_applied_for', $jabatan));
+                $needle = mb_strtolower($jabatan);
+                $query->whereHas('attempt', fn ($q) => $q->whereRaw('LOWER(participant_applied_for) = ?', [$needle]));
             })
             ->when($startAt || $endAt, function ($query) use ($startAt, $endAt) {
                 $query->whereHas('attempt', function ($attemptQuery) use ($startAt, $endAt) {
@@ -71,7 +74,7 @@ class AdminResultController extends Controller
             })
             ->orderByDesc('quiz_results.calculated_at')
             ->orderByDesc('quiz_results.id')
-            ->paginate(20)
+            ->paginate(10)
             ->withQueryString();
 
         $pdfByResultId = ResultPdf::query()
@@ -215,7 +218,7 @@ class AdminResultController extends Controller
      */
     private function jabatanOptionsForUser(?int $creatorUserId): array
     {
-        $query = \Illuminate\Support\Facades\DB::table('quiz_attempts')
+        $query = DB::table('quiz_attempts')
             ->join('quizzes', 'quizzes.id', '=', 'quiz_attempts.quiz_id')
             ->whereNotNull('quiz_attempts.participant_applied_for')
             ->where('quiz_attempts.participant_applied_for', '!=', '')
@@ -226,7 +229,14 @@ class AdminResultController extends Controller
             $query->where('quizzes.created_by', $creatorUserId);
         }
 
-        return $query->pluck('jabatan')->map(fn ($v) => (string) $v)->values()->all();
+        return $query
+            ->pluck('jabatan')
+            ->map(fn ($v) => ParticipantAppliedForNormalizer::normalize((string) $v))
+            ->filter(fn ($v) => $v !== '')
+            ->unique(fn ($v) => mb_strtolower((string) $v))
+            ->sort()
+            ->values()
+            ->all();
     }
 
     /**

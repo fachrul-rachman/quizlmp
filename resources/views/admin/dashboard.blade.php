@@ -65,7 +65,7 @@
     <div class="mt-4 rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
         <div class="border-b border-zinc-200 px-4 py-3 text-sm font-semibold dark:border-zinc-800">Hasil Terbaru</div>
 
-        @if ($latestResults->isEmpty())
+        @if ($latestResults->count() === 0)
             <div class="px-4 py-4 text-sm text-zinc-600 dark:text-zinc-300">Belum ada hasil quiz.</div>
         @else
             <div class="overflow-x-auto">
@@ -115,6 +115,9 @@
                         @endforeach
                     </tbody>
                 </table>
+            </div>
+            <div class="border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
+                {{ $latestResults->links() }}
             </div>
         @endif
     </div>

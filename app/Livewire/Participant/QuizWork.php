@@ -137,7 +137,11 @@ class QuizWork extends Component
         }
 
         $this->step = 1;
-        $this->moveToFirstUnansweredStep();
+        if (! $this->moveToFirstUnworkedStep()) {
+            $this->finalize('submitted');
+            $this->redirect('/quiz/'.$this->token.'/done', navigate: false);
+            return;
+        }
         $this->loadStep($this->attemptId, $this->quizId, $this->shuffleOptions, $this->quizPk);
         $this->refreshProgress();
 
@@ -228,6 +232,7 @@ class QuizWork extends Component
                     'answer_text' => null,
                     'is_correct' => $isCorrect,
                     'answered_at' => now(),
+                    'skipped_at' => null,
                 ],
             );
 
@@ -248,17 +253,12 @@ class QuizWork extends Component
                     'selected_option_id' => null,
                     'answer_text' => $text,
                     'answered_at' => now(),
+                    'skipped_at' => null,
                 ],
             );
         }
 
         $this->refreshProgress();
-
-        if ($this->answeredCount >= $this->totalQuestions) {
-            $this->finalize('submitted');
-            $this->redirect('/quiz/'.$this->token.'/done', navigate: false);
-            return;
-        }
 
         if ($this->instantFeedbackEnabled && $this->currentQuestionType === 'multiple_choice') {
             $this->pendingAutoAdvance = true;
@@ -266,7 +266,56 @@ class QuizWork extends Component
             return;
         }
 
-        $this->goToNextUnansweredStep();
+        $this->goToNextWorkStepOrFinalize();
+    }
+
+    public function skipCurrent(): void
+    {
+        $this->expireAttemptIfMultiUseLinkExpired();
+        if ($this->state === 'expired') {
+            return;
+        }
+
+        if ($this->attemptId <= 0 || ! $this->currentQuestionId) {
+            return;
+        }
+
+        $attempt = QuizAttempt::query()->find($this->attemptId);
+        if (! $attempt || (int) $attempt->quiz_link_id !== (int) $this->linkId) {
+            return;
+        }
+
+        if ($attempt->status !== 'in_progress') {
+            return;
+        }
+
+        $this->secondsRemaining = $this->calculateSecondsRemaining($attempt);
+        if ($this->secondsRemaining <= 0) {
+            return;
+        }
+
+        AttemptAnswer::updateOrCreate(
+            ['quiz_attempt_id' => $attempt->id, 'question_id' => $this->currentQuestionId],
+            [
+                'selected_option_id' => null,
+                'answer_text' => null,
+                'is_correct' => false,
+                'answered_at' => null,
+                'skipped_at' => now(),
+            ],
+        );
+
+        $this->suppressInstantFeedbackLock = true;
+        $this->selectedOptionId = null;
+        $this->suppressInstantFeedbackLock = false;
+        $this->shortAnswerText = '';
+        $this->currentAnswerIsCorrect = null;
+        $this->currentAnswerLocked = false;
+        $this->lockedSelectedOptionId = null;
+        $this->pendingAutoAdvance = false;
+
+        $this->refreshProgress();
+        $this->goToNextWorkStepOrFinalize();
     }
 
     public function advanceAfterInstantFeedback(): void
@@ -281,12 +330,17 @@ class QuizWork extends Component
         }
 
         $this->pendingAutoAdvance = false;
-        $this->goToNextUnansweredStep();
+        $this->goToNextWorkStepOrFinalize();
     }
 
-    private function goToNextUnansweredStep(): void
+    private function goToNextWorkStepOrFinalize(): void
     {
-        $this->moveToFirstUnansweredStep();
+        if (! $this->moveToFirstUnworkedStep()) {
+            $this->finalize('submitted');
+            $this->redirect('/quiz/'.$this->token.'/done', navigate: false);
+            return;
+        }
+
         $this->loadStep($this->attemptId, $this->quizId, $this->shuffleOptions, $this->quizPk);
     }
 
@@ -336,24 +390,28 @@ class QuizWork extends Component
         $this->answeredCount = $answered;
     }
 
-    private function moveToFirstUnansweredStep(): void
+    private function moveToFirstUnworkedStep(): bool
     {
         if ($this->attemptId <= 0 || $this->questionIds === []) {
             $this->step = 1;
-            return;
+            return true;
         }
 
         $answers = AttemptAnswer::query()
             ->where('quiz_attempt_id', $this->attemptId)
             ->whereIn('question_id', $this->questionIds)
-            ->get(['question_id', 'selected_option_id', 'answer_text'])
+            ->get(['question_id', 'selected_option_id', 'answer_text', 'skipped_at'])
             ->keyBy('question_id');
 
         foreach ($this->questionIds as $idx => $qid) {
             $a = $answers->get($qid);
             if (! $a) {
                 $this->step = $idx + 1;
-                return;
+                return true;
+            }
+
+            if ($a->skipped_at) {
+                continue;
             }
 
             if ($a->selected_option_id) {
@@ -365,10 +423,10 @@ class QuizWork extends Component
             }
 
             $this->step = $idx + 1;
-            return;
+            return true;
         }
 
-        $this->step = count($this->questionIds);
+        return false;
     }
 
     /**
@@ -525,6 +583,7 @@ class QuizWork extends Component
                 'answer_text' => null,
                 'is_correct' => $isCorrect,
                 'answered_at' => now(),
+                'skipped_at' => null,
             ],
         );
 

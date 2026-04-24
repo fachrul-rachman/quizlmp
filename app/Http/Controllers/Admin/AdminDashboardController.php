@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\GoogleDrive\GoogleDriveOAuthTokenService;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 
@@ -15,6 +16,10 @@ class AdminDashboardController extends Controller
         $user = request()->user();
         $isSuperAdmin = (($user?->role ?? null) === 'super_admin');
         $userId = (int) ($user?->id ?? 0);
+
+        $tz = 'Asia/Jakarta';
+        $todayStart = CarbonImmutable::now($tz)->startOfDay();
+        $todayEnd = CarbonImmutable::now($tz)->endOfDay();
 
         $stats = [
             'total_quizzes' => $isSuperAdmin
@@ -46,6 +51,7 @@ class AdminDashboardController extends Controller
             ->join('quizzes', 'quizzes.id', '=', 'quiz_results.quiz_id')
             ->join('quiz_attempts', 'quiz_attempts.id', '=', 'quiz_results.quiz_attempt_id')
             ->when(! $isSuperAdmin, fn ($q) => $q->where('quizzes.created_by', $userId))
+            ->whereBetween('quiz_results.calculated_at', [$todayStart, $todayEnd])
             ->select([
                 'quiz_results.id',
                 'quizzes.title as quiz_title',
@@ -58,8 +64,8 @@ class AdminDashboardController extends Controller
                 'quiz_results.calculated_at',
             ])
             ->orderByDesc('quiz_results.calculated_at')
-            ->limit(10)
-            ->get();
+            ->paginate(10)
+            ->withQueryString();
 
         return view('admin.dashboard', [
             'stats' => $stats,

@@ -46,7 +46,7 @@ class AdminQuizController extends Controller
 
         $quizzes = $query
             ->orderByDesc('id')
-            ->paginate(15)
+            ->paginate(10)
             ->withQueryString();
 
         return view('admin.quizzes.index', [

@@ -4,6 +4,7 @@ namespace App\Livewire\Participant;
 
 use App\Models\QuizAttempt;
 use App\Models\QuizLink;
+use App\Support\ParticipantAppliedForNormalizer;
 use Carbon\CarbonImmutable;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
@@ -129,6 +130,8 @@ class QuizStart extends Component
             'participantAppliedFor' => 'Jabatan',
         ]);
 
+        $this->participantAppliedFor = ParticipantAppliedForNormalizer::normalize($this->participantAppliedFor);
+
         if ($link->usage_type === 'multi') {
             if (! $attempt) {
                 $attempt = QuizAttempt::create([
@@ -181,6 +184,8 @@ class QuizStart extends Component
             'participantName' => 'Nama Peserta',
             'participantAppliedFor' => 'Jabatan',
         ]);
+
+        $this->participantAppliedFor = ParticipantAppliedForNormalizer::normalize($this->participantAppliedFor);
 
         if ($link->usage_type === 'multi' && $this->isMultiUseExpired($link)) {
             $this->state = 'final';

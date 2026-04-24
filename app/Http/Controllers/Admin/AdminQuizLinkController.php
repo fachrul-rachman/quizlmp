@@ -40,7 +40,7 @@ class AdminQuizLinkController extends Controller
             $query->where('status', $status);
         }
 
-        $links = $query->paginate(20)->withQueryString();
+        $links = $query->paginate(10)->withQueryString();
 
         $quizzes = Quiz::query()
             ->when(! $isSuperAdmin && $user, fn ($q) => $q->where('created_by', (int) $user->id))

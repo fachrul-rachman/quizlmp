@@ -252,6 +252,7 @@ class ResultPdfService
         }
 
         if (is_string($pdf->google_drive_file_id) && $pdf->google_drive_file_id !== '') {
+            $this->deleteLocalPdfIfPresent($pdf);
             return;
         }
 
@@ -283,8 +284,32 @@ class ResultPdfService
             $pdf->google_drive_url = (string) $res['google_drive_url'];
             $pdf->uploaded_at = now();
             $pdf->save();
+
+            $this->deleteLocalPdfIfPresent($pdf);
         } catch (\Throwable $e) {
             Log::error('google drive upload failed', [
+                'quiz_result_id' => $pdf->quiz_result_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function deleteLocalPdfIfPresent(ResultPdf $pdf): void
+    {
+        $relativePath = is_string($pdf->local_path) ? $pdf->local_path : '';
+        if ($relativePath === '') {
+            return;
+        }
+
+        try {
+            if (Storage::disk('local')->exists($relativePath)) {
+                Storage::disk('local')->delete($relativePath);
+            }
+
+            $pdf->local_path = null;
+            $pdf->save();
+        } catch (\Throwable $e) {
+            Log::warning('local pdf delete failed', [
                 'quiz_result_id' => $pdf->quiz_result_id,
                 'error' => $e->getMessage(),
             ]);

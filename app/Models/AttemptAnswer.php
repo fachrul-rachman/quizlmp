@@ -14,6 +14,7 @@ class AttemptAnswer extends Model
         'answer_text',
         'is_correct',
         'answered_at',
+        'skipped_at',
     ];
 
     protected function casts(): array
@@ -21,6 +22,7 @@ class AttemptAnswer extends Model
         return [
             'is_correct' => 'boolean',
             'answered_at' => 'datetime',
+            'skipped_at' => 'datetime',
         ];
     }
 
@@ -39,4 +41,3 @@ class AttemptAnswer extends Model
         return $this->belongsTo(QuestionOption::class, 'selected_option_id');
     }
 }
-
