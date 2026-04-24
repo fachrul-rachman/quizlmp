@@ -12,7 +12,7 @@
         <div class="text-lg font-semibold">Daftar Hasil</div>
     </div>
 
-    <form method="GET" action="{{ url('/admin/results') }}" class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-4">
+    <form method="GET" action="{{ url('/admin/results') }}" class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-6">
         <div class="sm:col-span-2">
             <label class="block text-sm font-medium mb-1">Search</label>
             <input name="search" value="{{ $search }}" placeholder="Nama peserta, jabatan, atau nama quiz" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
@@ -34,10 +34,39 @@
                 <option value="auto_submitted" @selected($status === 'auto_submitted')>Selesai Otomatis</option>
             </select>
         </div>
-        <div class="sm:col-span-4 flex gap-2">
+        <div>
+            <label class="block text-sm font-medium mb-1">Periode</label>
+            <select name="range" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950">
+                <option value="" @selected($rangePreset === '')>Custom</option>
+                <option value="week" @selected($rangePreset === 'week')>1 Minggu Terakhir</option>
+                <option value="month" @selected($rangePreset === 'month')>1 Bulan Terakhir</option>
+                <option value="year" @selected($rangePreset === 'year')>1 Tahun Terakhir</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium mb-1">Jabatan</label>
+            <select name="jabatan" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950">
+                <option value="">Semua</option>
+                @foreach ($jabatanOptions as $opt)
+                    <option value="{{ $opt }}" @selected($jabatan === $opt)>{{ $opt }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="sm:col-span-3">
+            <label class="block text-sm font-medium mb-1">Tanggal Submit (Mulai)</label>
+            <input name="date_from" type="date" value="{{ $dateFrom }}" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
+        </div>
+        <div class="sm:col-span-3">
+            <label class="block text-sm font-medium mb-1">Tanggal Submit (Sampai)</label>
+            <input name="date_to" type="date" value="{{ $dateTo }}" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
+        </div>
+        <div class="sm:col-span-6 flex gap-2">
             <button type="submit" class="rounded-md bg-blue-900 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
                 Filter
             </button>
+            <a href="{{ url('/admin/results/export') }}?{{ http_build_query(request()->except('page')) }}" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-900 hover:bg-emerald-100">
+                Export Excel
+            </a>
             <a href="{{ url('/admin/results') }}" class="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800/40">
                 Reset
             </a>

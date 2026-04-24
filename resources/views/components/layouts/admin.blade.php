@@ -55,14 +55,6 @@
                         </span>
                         <span>Quiz</span>
                     </a>
-                    <a href="{{ url('/admin/quiz-categories') }}" class="{{ $navLinkClass(request()->routeIs('admin.quiz-categories.*')) }}">
-                        <span class="shrink-0">
-                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M3 7a2 2 0 0 1 2-2h6l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </span>
-                        <span>Kategori Quiz</span>
-                    </a>
                     <a href="{{ url('/admin/generate-link') }}" class="{{ $navLinkClass(request()->routeIs('admin.links.*')) }}">
                         <span class="shrink-0">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -139,14 +131,6 @@
                             </svg>
                         </span>
                         <span>Quiz</span>
-                    </a>
-                    <a href="{{ url('/admin/quiz-categories') }}" class="{{ $navLinkClass(request()->routeIs('admin.quiz-categories.*')) }}">
-                        <span class="shrink-0">
-                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M3 7a2 2 0 0 1 2-2h6l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </span>
-                        <span>Kategori Quiz</span>
                     </a>
                     <a href="{{ url('/admin/generate-link') }}" class="{{ $navLinkClass(request()->routeIs('admin.links.*')) }}">
                         <span class="shrink-0">

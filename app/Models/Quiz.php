@@ -14,7 +14,6 @@ class Quiz extends Model
     protected $fillable = [
         'title',
         'description',
-        'category_id',
         'duration_minutes',
         'shuffle_questions',
         'shuffle_options',
@@ -48,11 +47,6 @@ class Quiz extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
-    }
-
-    public function category(): BelongsTo
-    {
-        return $this->belongsTo(QuizCategory::class, 'category_id');
     }
 
     public function updater(): BelongsTo

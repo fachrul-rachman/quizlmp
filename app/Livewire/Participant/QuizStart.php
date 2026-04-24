@@ -126,7 +126,7 @@ class QuizStart extends Component
             'participantAppliedFor' => ['required', 'string', 'max:255'],
         ], [], [
             'participantName' => 'Nama Peserta',
-            'participantAppliedFor' => 'Melamar Untuk',
+            'participantAppliedFor' => 'Jabatan',
         ]);
 
         if ($link->usage_type === 'multi') {
@@ -179,7 +179,7 @@ class QuizStart extends Component
             'participantAppliedFor' => ['required', 'string', 'max:255'],
         ], [], [
             'participantName' => 'Nama Peserta',
-            'participantAppliedFor' => 'Melamar Untuk',
+            'participantAppliedFor' => 'Jabatan',
         ]);
 
         if ($link->usage_type === 'multi' && $this->isMultiUseExpired($link)) {

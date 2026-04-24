@@ -25,7 +25,10 @@ class DiscordResultWebhookService
         }
 
         $payload = $this->buildPayload($row);
-        $url = $this->webhookUrl();
+        $url = $this->webhookUrlForRow($row);
+        if ($url === '') {
+            return;
+        }
 
         try {
             $response = Http::timeout(20)->post($url, $payload);
@@ -66,11 +69,6 @@ class DiscordResultWebhookService
     private function isEnabled(): bool
     {
         $enabled = env('DISCORD_WEBHOOK_ENABLED');
-        $url = $this->webhookUrl();
-
-        if ($url === '') {
-            return false;
-        }
 
         if ($enabled === null) {
             return true;
@@ -79,8 +77,13 @@ class DiscordResultWebhookService
         return filter_var($enabled, FILTER_VALIDATE_BOOLEAN);
     }
 
-    private function webhookUrl(): string
+    private function webhookUrlForRow(object $row): string
     {
+        $userUrl = trim((string) ($row->discord_webhook_url ?? ''));
+        if ($userUrl !== '') {
+            return $userUrl;
+        }
+
         return trim((string) env('DISCORD_WEBHOOK_URL', ''));
     }
 
@@ -89,12 +92,14 @@ class DiscordResultWebhookService
         return DB::table('quiz_results')
             ->join('quiz_attempts', 'quiz_attempts.id', '=', 'quiz_results.quiz_attempt_id')
             ->join('quizzes', 'quizzes.id', '=', 'quiz_results.quiz_id')
+            ->join('users', 'users.id', '=', 'quizzes.created_by')
             ->leftJoin('result_pdfs', 'result_pdfs.quiz_result_id', '=', 'quiz_results.id')
             ->where('quiz_results.id', $quizResultId)
             ->select([
                 'quizzes.title as quiz_title',
                 'quiz_attempts.participant_name',
                 'quiz_attempts.participant_applied_for',
+                'users.discord_webhook_url',
                 'quiz_results.correct_answers',
                 'quiz_results.total_questions',
                 'quiz_results.wrong_answers',

@@ -24,10 +24,6 @@
                 <div class="mt-1 font-semibold">{{ $quiz->title }}</div>
             </div>
             <div>
-                <div class="text-sm text-zinc-500 dark:text-zinc-400">Kategori</div>
-                <div class="mt-1 font-semibold">{{ $quiz->category?->name ?? 'Folder Utama' }}</div>
-            </div>
-            <div>
                 <div class="text-sm text-zinc-500 dark:text-zinc-400">Durasi</div>
                 <div class="mt-1 font-semibold">{{ $quiz->duration_minutes }} menit</div>
             </div>

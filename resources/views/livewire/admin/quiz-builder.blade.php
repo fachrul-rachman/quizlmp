@@ -779,23 +779,10 @@
                 <span class="section-title">Informasi Quiz</span>
             </div>
             <div class="section-body">
-                <div class="field-row" style="margin-bottom:16px">
-                    <div>
-                        <label class="label">Nama Quiz</label>
-                        <input type="text" wire:model.defer="title" placeholder="Contoh: UTS Matematika Kelas 10" />
-                        @error('title') <div class="error">{{ $message }}</div> @enderror
-                    </div>
-                    <div>
-                        <label class="label">Kategori <span class="optional">(opsional)</span></label>
-                        <select wire:model.defer="categoryId">
-                            <option value="">Folder Utama</option>
-                            @foreach ($categories as $category)
-                                <option value="{{ $category->id }}">{{ $category->name }}</option>
-                            @endforeach
-                        </select>
-                        <p class="hint">Kosongkan jika quiz ingin tetap berada di folder utama.</p>
-                        @error('categoryId') <div class="error">{{ $message }}</div> @enderror
-                    </div>
+                <div class="field" style="margin-bottom:16px">
+                    <label class="label">Nama Quiz</label>
+                    <input type="text" wire:model.defer="title" placeholder="Contoh: UTS Matematika Kelas 10" />
+                    @error('title') <div class="error">{{ $message }}</div> @enderror
                 </div>
 
                 <div class="field">
@@ -1175,7 +1162,7 @@
                 return;
             }
 
-            if (firstErrorKey === 'title' || firstErrorKey === 'description' || firstErrorKey === 'categoryId') {
+            if (firstErrorKey === 'title' || firstErrorKey === 'description') {
                 scrollToTarget('qb-section-info');
                 return;
             }

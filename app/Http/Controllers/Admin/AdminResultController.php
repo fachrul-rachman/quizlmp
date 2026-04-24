@@ -11,18 +11,26 @@ use App\Models\QuizAttempt;
 use App\Models\QuizResult;
 use App\Models\ResultPdf;
 use App\Models\ShortAnswerKey;
+use App\Services\Export\ResultExportXlsxService;
 use App\Support\DeterministicShuffle;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AdminResultController extends Controller
 {
     public function index(Request $request): View
     {
+        $user = $request->user();
+        $isSuperAdmin = (($user?->role ?? null) === 'super_admin');
+
         $search = trim((string) $request->query('search', ''));
         $quizId = (string) $request->query('quiz_id', '');
         $status = (string) $request->query('status', 'all');
+        $jabatan = trim((string) $request->query('jabatan', ''));
+        [$startAt, $endAt] = $this->resolveSubmittedAtRange($request);
 
         $results = QuizResult::query()
             ->select('quiz_results.*')
@@ -30,6 +38,9 @@ class AdminResultController extends Controller
                 'quiz:id,title',
                 'attempt:id,quiz_id,participant_name,participant_applied_for,status,submitted_at',
             ])
+            ->when(! $isSuperAdmin && $user, function ($query) use ($user) {
+                $query->whereHas('quiz', fn ($q) => $q->where('created_by', (int) $user->id));
+            })
             ->when($search !== '', function ($query) use ($search) {
                 $needle = mb_strtolower($search);
 
@@ -45,6 +56,19 @@ class AdminResultController extends Controller
             })
             ->when($quizId !== '', fn ($query) => $query->where('quiz_results.quiz_id', (int) $quizId))
             ->when($status !== 'all', fn ($query) => $query->where('quiz_results.result_status', $status))
+            ->when($jabatan !== '', function ($query) use ($jabatan) {
+                $query->whereHas('attempt', fn ($q) => $q->where('participant_applied_for', $jabatan));
+            })
+            ->when($startAt || $endAt, function ($query) use ($startAt, $endAt) {
+                $query->whereHas('attempt', function ($attemptQuery) use ($startAt, $endAt) {
+                    if ($startAt) {
+                        $attemptQuery->where('submitted_at', '>=', $startAt);
+                    }
+                    if ($endAt) {
+                        $attemptQuery->where('submitted_at', '<=', $endAt);
+                    }
+                });
+            })
             ->orderByDesc('quiz_results.calculated_at')
             ->orderByDesc('quiz_results.id')
             ->paginate(20)
@@ -65,8 +89,11 @@ class AdminResultController extends Controller
         });
 
         $quizzes = Quiz::query()
+            ->when(! $isSuperAdmin && $user, fn ($q) => $q->where('created_by', (int) $user->id))
             ->orderBy('title')
             ->get(['id', 'title']);
+
+        $jabatanOptions = $this->jabatanOptionsForUser($isSuperAdmin ? null : (int) ($user?->id ?? 0));
 
         return view('admin.results.index', [
             'results' => $results,
@@ -75,19 +102,30 @@ class AdminResultController extends Controller
             'search' => $search,
             'quizId' => $quizId,
             'status' => $status,
+            'jabatan' => $jabatan,
+            'jabatanOptions' => $jabatanOptions,
+            'dateFrom' => $request->query('date_from', ''),
+            'dateTo' => $request->query('date_to', ''),
+            'rangePreset' => (string) $request->query('range', ''),
         ]);
     }
 
     public function show(QuizResult $quizResult): View
     {
+        $user = request()->user();
+        $isSuperAdmin = (($user?->role ?? null) === 'super_admin');
+
         $quizResult->load([
-            'quiz:id,title,description,duration_minutes,shuffle_questions,shuffle_options',
+            'quiz:id,title,description,duration_minutes,shuffle_questions,shuffle_options,created_by',
             'attempt:id,quiz_id,participant_name,participant_applied_for,started_at,submitted_at,time_limit_minutes,status',
         ]);
 
         $attempt = $quizResult->attempt;
         $quiz = $quizResult->quiz;
         abort_unless($attempt && $quiz, 404);
+        if (! $isSuperAdmin && (int) $quiz->created_by !== (int) ($user?->id ?? 0)) {
+            abort(404);
+        }
 
         $pdf = ResultPdf::query()
             ->where('quiz_result_id', $quizResult->id)
@@ -103,6 +141,92 @@ class AdminResultController extends Controller
             'pdf' => $pdf,
             'questionRows' => $questionRows,
         ]);
+    }
+
+    public function export(Request $request, ResultExportXlsxService $exportService): BinaryFileResponse
+    {
+        $user = $request->user();
+        $isSuperAdmin = (($user?->role ?? null) === 'super_admin');
+
+        $quizId = $request->query('quiz_id', '');
+        $status = (string) $request->query('status', 'all');
+        $jabatan = trim((string) $request->query('jabatan', ''));
+        [$startAt, $endAt] = $this->resolveSubmittedAtRange($request);
+
+        $payload = $exportService->exportToTempFile([
+            'quiz_id' => ctype_digit((string) $quizId) ? (int) $quizId : null,
+            'jabatan' => $jabatan !== '' ? $jabatan : null,
+            'status' => $status,
+            'start_at' => $startAt,
+            'end_at' => $endAt,
+        ], $isSuperAdmin ? null : (int) ($user?->id ?? 0), $isSuperAdmin);
+
+        return response()->download($payload['path'], $payload['download_name'])->deleteFileAfterSend(true);
+    }
+
+    /**
+     * @return array{0:?CarbonImmutable,1:?CarbonImmutable}
+     */
+    private function resolveSubmittedAtRange(Request $request): array
+    {
+        $range = (string) $request->query('range', '');
+        $dateFrom = trim((string) $request->query('date_from', ''));
+        $dateTo = trim((string) $request->query('date_to', ''));
+
+        $tz = 'Asia/Jakarta';
+        $now = CarbonImmutable::now($tz);
+
+        if ($range === 'week') {
+            return [$now->subDays(7)->startOfDay(), $now->endOfDay()];
+        }
+
+        if ($range === 'month') {
+            return [$now->subDays(30)->startOfDay(), $now->endOfDay()];
+        }
+
+        if ($range === 'year') {
+            return [$now->subDays(365)->startOfDay(), $now->endOfDay()];
+        }
+
+        $start = null;
+        $end = null;
+
+        if ($dateFrom !== '') {
+            try {
+                $start = CarbonImmutable::parse($dateFrom, $tz)->startOfDay();
+            } catch (\Throwable) {
+                $start = null;
+            }
+        }
+
+        if ($dateTo !== '') {
+            try {
+                $end = CarbonImmutable::parse($dateTo, $tz)->endOfDay();
+            } catch (\Throwable) {
+                $end = null;
+            }
+        }
+
+        return [$start, $end];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function jabatanOptionsForUser(?int $creatorUserId): array
+    {
+        $query = \Illuminate\Support\Facades\DB::table('quiz_attempts')
+            ->join('quizzes', 'quizzes.id', '=', 'quiz_attempts.quiz_id')
+            ->whereNotNull('quiz_attempts.participant_applied_for')
+            ->where('quiz_attempts.participant_applied_for', '!=', '')
+            ->selectRaw('DISTINCT quiz_attempts.participant_applied_for as jabatan')
+            ->orderBy('jabatan');
+
+        if ($creatorUserId !== null && $creatorUserId > 0) {
+            $query->where('quizzes.created_by', $creatorUserId);
+        }
+
+        return $query->pluck('jabatan')->map(fn ($v) => (string) $v)->values()->all();
     }
 
     /**

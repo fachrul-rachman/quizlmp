@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Quiz;
-use App\Models\QuizCategory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,12 +13,14 @@ class AdminQuizController extends Controller
 {
     public function index(Request $request): View
     {
+        $user = $request->user();
+        $isSuperAdmin = (($user?->role ?? null) === 'super_admin');
+
         $search = trim((string) $request->query('search', ''));
         $status = (string) $request->query('status', 'all');
-        $categoryId = (string) $request->query('category_id', 'all');
 
         $query = Quiz::query()
-            ->with(['creator:id,name', 'category:id,name'])
+            ->with(['creator:id,name'])
             ->addSelect([
                 'active_questions_count' => DB::table('questions')
                     ->selectRaw('count(*)')
@@ -27,6 +28,10 @@ class AdminQuizController extends Controller
                     ->whereNull('questions.deleted_at')
                     ->where('questions.is_active', true),
             ]);
+
+        if (! $isSuperAdmin && $user) {
+            $query->where('created_by', (int) $user->id);
+        }
 
         if ($search !== '') {
             $needle = mb_strtolower($search);
@@ -39,27 +44,15 @@ class AdminQuizController extends Controller
             $query->where('is_active', false);
         }
 
-        if ($categoryId === 'default') {
-            $query->whereNull('category_id');
-        } elseif ($categoryId !== 'all' && ctype_digit($categoryId)) {
-            $query->where('category_id', (int) $categoryId);
-        }
-
         $quizzes = $query
             ->orderByDesc('id')
             ->paginate(15)
             ->withQueryString();
 
-        $categories = QuizCategory::query()
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
         return view('admin.quizzes.index', [
             'quizzes' => $quizzes,
             'search' => $search,
             'status' => $status,
-            'categoryId' => $categoryId,
-            'categories' => $categories,
         ]);
     }
 
@@ -70,8 +63,13 @@ class AdminQuizController extends Controller
 
     public function show(Quiz $quiz): View
     {
+        $user = request()->user();
+        $isSuperAdmin = (($user?->role ?? null) === 'super_admin');
+        if (! $isSuperAdmin && (int) $quiz->created_by !== (int) ($user?->id ?? 0)) {
+            abort(404);
+        }
+
         $quiz->load([
-            'category:id,name',
             'creator:id,name',
             'updater:id,name',
             'questions' => fn ($q) => $q->orderBy('order_number'),
@@ -86,6 +84,12 @@ class AdminQuizController extends Controller
 
     public function edit(Quiz $quiz): View
     {
+        $user = request()->user();
+        $isSuperAdmin = (($user?->role ?? null) === 'super_admin');
+        if (! $isSuperAdmin && (int) $quiz->created_by !== (int) ($user?->id ?? 0)) {
+            abort(404);
+        }
+
         return view('admin.quizzes.edit', [
             'quiz' => $quiz,
         ]);
@@ -93,6 +97,12 @@ class AdminQuizController extends Controller
 
     public function destroy(Quiz $quiz): RedirectResponse
     {
+        $user = request()->user();
+        $isSuperAdmin = (($user?->role ?? null) === 'super_admin');
+        if (! $isSuperAdmin && (int) $quiz->created_by !== (int) ($user?->id ?? 0)) {
+            abort(404);
+        }
+
         $quiz->delete();
 
         return redirect()

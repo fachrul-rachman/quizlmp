@@ -61,6 +61,8 @@ class QuizWork extends Component
     public int $answeredCount = 0;
     public int $totalQuestions = 0;
 
+    private bool $suppressInstantFeedbackLock = false;
+
     public function mount(string $token): void
     {
         $this->token = $token;
@@ -163,6 +165,22 @@ class QuizWork extends Component
         if ($this->secondsRemaining <= 0) {
             $this->finalizeAutoIfNeeded();
         }
+    }
+
+    public function updatedSelectedOptionId(): void
+    {
+        if ($this->suppressInstantFeedbackLock) {
+            return;
+        }
+
+        if ($this->currentAnswerLocked && $this->lockedSelectedOptionId !== null) {
+            $this->suppressInstantFeedbackLock = true;
+            $this->selectedOptionId = (int) $this->lockedSelectedOptionId;
+            $this->suppressInstantFeedbackLock = false;
+            return;
+        }
+
+        $this->lockCurrentMultipleChoiceAnswer();
     }
 
     public function answerCurrent(): void
@@ -419,7 +437,9 @@ class QuizWork extends Component
             ->where('question_id', $question->id)
             ->first();
 
+        $this->suppressInstantFeedbackLock = true;
         $this->selectedOptionId = $answer?->selected_option_id ? (int) $answer->selected_option_id : null;
+        $this->suppressInstantFeedbackLock = false;
         $this->shortAnswerText = (string) ($answer?->answer_text ?? '');
 
         $this->currentOptions = [];

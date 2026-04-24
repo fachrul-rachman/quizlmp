@@ -19,12 +19,7 @@ class DatabaseSeeder extends Seeder
                 'email' => 'superadmin@lestari.com',
                 'name' => 'Super Admin',
                 'role' => 'super_admin',
-            ],
-            [
-                'email' => 'admin@lestari.com',
-                'name' => 'Admin',
-                'role' => 'admin',
-            ],
+            ]
         ];
 
         foreach ($users as $u) {

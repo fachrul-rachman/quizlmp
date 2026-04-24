@@ -12,7 +12,7 @@
         </a>
     </div>
 
-    <form method="GET" action="{{ url('/admin/quizzes') }}" class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-4">
+    <form method="GET" action="{{ url('/admin/quizzes') }}" class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div class="sm:col-span-2">
             <label class="block text-sm font-medium mb-1">Search</label>
             <input name="search" value="{{ $search }}" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
@@ -25,17 +25,7 @@
                 <option value="inactive" @selected($status === 'inactive')>Nonaktif</option>
             </select>
         </div>
-        <div>
-            <label class="block text-sm font-medium mb-1">Kategori</label>
-            <select name="category_id" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950">
-                <option value="all" @selected($categoryId === 'all')>Semua</option>
-                <option value="default" @selected($categoryId === 'default')>Folder Utama</option>
-                @foreach ($categories as $category)
-                    <option value="{{ $category->id }}" @selected($categoryId === (string) $category->id)>{{ $category->name }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div class="sm:col-span-4 flex gap-2">
+        <div class="sm:col-span-3 flex gap-2">
             <button type="submit" class="rounded-md bg-blue-900 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
                 Filter
             </button>
@@ -54,7 +44,6 @@
                     <thead class="bg-zinc-50 text-zinc-600 dark:bg-zinc-900/40 dark:text-zinc-300">
                         <tr>
                             <th class="px-4 py-2 text-left font-medium">Nama Quiz</th>
-                            <th class="px-4 py-2 text-left font-medium">Kategori</th>
                             <th class="px-4 py-2 text-left font-medium">Durasi</th>
                             <th class="px-4 py-2 text-left font-medium">Jumlah Soal</th>
                             <th class="px-4 py-2 text-left font-medium">Shuffle Soal</th>
@@ -69,11 +58,6 @@
                             <tr class="hover:bg-slate-50">
                                 <td class="px-4 py-3 align-top">
                                     <div class="font-semibold">{{ $quiz->title }}</div>
-                                </td>
-                                <td class="px-4 py-2">
-                                    <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-200">
-                                        {{ $quiz->category?->name ?? 'Folder Utama' }}
-                                    </span>
                                 </td>
                                 <td class="px-4 py-3 align-top">{{ $quiz->duration_minutes }} menit</td>
                                 <td class="px-4 py-3 align-top">{{ (int) ($quiz->active_questions_count ?? 0) }}</td>

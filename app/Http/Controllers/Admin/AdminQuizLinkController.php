@@ -12,6 +12,9 @@ class AdminQuizLinkController extends Controller
 {
     public function index(Request $request): View
     {
+        $user = $request->user();
+        $isSuperAdmin = (($user?->role ?? null) === 'super_admin');
+
         $search = trim((string) $request->query('search', ''));
         $quizId = (string) $request->query('quiz_id', '');
         $status = (string) $request->query('status', 'all');
@@ -19,6 +22,9 @@ class AdminQuizLinkController extends Controller
         $query = QuizLink::query()
             ->with('quiz:id,title')
             ->withCount('attempts')
+            ->when(! $isSuperAdmin && $user, function ($q) use ($user) {
+                $q->whereHas('quiz', fn ($quiz) => $quiz->where('created_by', (int) $user->id));
+            })
             ->orderByDesc('id');
 
         if ($search !== '') {
@@ -37,6 +43,7 @@ class AdminQuizLinkController extends Controller
         $links = $query->paginate(20)->withQueryString();
 
         $quizzes = Quiz::query()
+            ->when(! $isSuperAdmin && $user, fn ($q) => $q->where('created_by', (int) $user->id))
             ->orderBy('title')
             ->get(['id', 'title']);
 
@@ -51,6 +58,15 @@ class AdminQuizLinkController extends Controller
 
     public function show(QuizLink $quizLink): View
     {
+        $user = request()->user();
+        $isSuperAdmin = (($user?->role ?? null) === 'super_admin');
+        if (! $isSuperAdmin) {
+            $quizLink->loadMissing('quiz:id,created_by');
+            if ((int) ($quizLink->quiz?->created_by ?? 0) !== (int) ($user?->id ?? 0)) {
+                abort(404);
+            }
+        }
+
         $quizLink->load([
             'quiz:id,title',
             'creator:id,name',

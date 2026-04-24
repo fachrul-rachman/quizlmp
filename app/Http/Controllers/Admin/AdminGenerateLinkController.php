@@ -16,8 +16,12 @@ class AdminGenerateLinkController extends Controller
 {
     public function index(Request $request): View
     {
+        $user = $request->user();
+        $isSuperAdmin = (($user?->role ?? null) === 'super_admin');
+
         $activeQuizzes = Quiz::query()
             ->where('is_active', true)
+            ->when(! $isSuperAdmin && $user, fn ($q) => $q->where('created_by', (int) $user->id))
             ->orderBy('title')
             ->get(['id', 'title']);
 
@@ -27,6 +31,9 @@ class AdminGenerateLinkController extends Controller
             $generatedLinks = QuizLink::query()
                 ->with('quiz:id,title')
                 ->whereIn('id', $generatedIds)
+                ->when(! $isSuperAdmin && $user, function ($q) use ($user) {
+                    $q->whereHas('quiz', fn ($quiz) => $quiz->where('created_by', (int) $user->id));
+                })
                 ->orderBy('id')
                 ->get();
         }
@@ -39,6 +46,9 @@ class AdminGenerateLinkController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $user = $request->user();
+        $isSuperAdmin = (($user?->role ?? null) === 'super_admin');
+
         $data = $request->validate([
             'quiz_id' => ['required', 'integer', 'exists:quizzes,id'],
             'count' => ['required', 'integer', 'min:1'],
@@ -54,6 +64,9 @@ class AdminGenerateLinkController extends Controller
         ]);
 
         $quiz = Quiz::query()->findOrFail((int) $data['quiz_id']);
+        if (! $isSuperAdmin && (int) $quiz->created_by !== (int) ($user?->id ?? 0)) {
+            abort(404);
+        }
         if (! $quiz->is_active) {
             return back()
                 ->withInput()

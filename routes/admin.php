@@ -7,7 +7,6 @@ use App\Http\Controllers\Admin\AdminQuizController;
 use App\Http\Controllers\Admin\AdminQuizTemplateController;
 use App\Http\Controllers\Admin\AdminGenerateLinkController;
 use App\Http\Controllers\Admin\AdminQuizLinkController;
-use App\Http\Controllers\Admin\AdminQuizCategoryController;
 use App\Http\Controllers\Admin\AdminResultController;
 use App\Http\Controllers\Admin\AdminUserController;
 use Illuminate\Support\Facades\Route;
@@ -29,13 +28,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/quizzes/{quiz}/edit', [AdminQuizController::class, 'edit'])->name('quizzes.edit');
         Route::delete('/quizzes/{quiz}', [AdminQuizController::class, 'destroy'])->name('quizzes.destroy');
 
-        Route::get('/quiz-categories', [AdminQuizCategoryController::class, 'index'])->name('quiz-categories.index');
-        Route::get('/quiz-categories/create', [AdminQuizCategoryController::class, 'create'])->name('quiz-categories.create');
-        Route::post('/quiz-categories', [AdminQuizCategoryController::class, 'store'])->name('quiz-categories.store');
-        Route::get('/quiz-categories/{quizCategory}/edit', [AdminQuizCategoryController::class, 'edit'])->name('quiz-categories.edit');
-        Route::put('/quiz-categories/{quizCategory}', [AdminQuizCategoryController::class, 'update'])->name('quiz-categories.update');
-        Route::delete('/quiz-categories/{quizCategory}', [AdminQuizCategoryController::class, 'destroy'])->name('quiz-categories.destroy');
-
         Route::get('/generate-link', [AdminGenerateLinkController::class, 'index'])->name('links.generate');
         Route::post('/generate-link', [AdminGenerateLinkController::class, 'store'])->name('links.generate.store');
 
@@ -43,6 +35,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/links/{quizLink}', [AdminQuizLinkController::class, 'show'])->name('links.show');
 
         Route::get('/results', [AdminResultController::class, 'index'])->name('results.index');
+        Route::get('/results/export', [AdminResultController::class, 'export'])->name('results.export');
         Route::get('/results/{quizResult}', [AdminResultController::class, 'show'])->name('results.show');
 
         Route::middleware('super_admin')->group(function () {

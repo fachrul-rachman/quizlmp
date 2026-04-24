@@ -5,7 +5,6 @@ namespace App\Livewire\Admin;
 use App\Models\Question;
 use App\Models\QuestionOption;
 use App\Models\Quiz;
-use App\Models\QuizCategory;
 use App\Models\ShortAnswerKey;
 use App\Services\QuizQuestionImportParser;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +18,6 @@ class QuizBuilder extends Component
     use WithFileUploads;
 
     public ?int $quizId = null;
-    public string $categoryId = '';
 
     public string $title = '';
     public ?string $description = null;
@@ -52,9 +50,14 @@ class QuizBuilder extends Component
             ->with(['questions' => fn ($q) => $q->orderBy('order_number'), 'questions.options' => fn ($q) => $q->orderBy('sort_order'), 'questions.shortAnswerKeys' => fn ($q) => $q->orderBy('sort_order')])
             ->findOrFail($quizId);
 
+        $user = auth()->user();
+        $isSuperAdmin = (($user?->role ?? null) === 'super_admin');
+        if (! $isSuperAdmin && (int) $quiz->created_by !== (int) ($user?->id ?? 0)) {
+            abort(404);
+        }
+
         $this->title = $quiz->title;
         $this->description = $quiz->description;
-        $this->categoryId = $quiz->category_id !== null ? (string) $quiz->category_id : '';
         $this->durationMinutes = (int) $quiz->duration_minutes;
         $this->shuffleQuestions = (bool) $quiz->shuffle_questions;
         $this->shuffleOptions = (bool) $quiz->shuffle_options;
@@ -197,7 +200,6 @@ class QuizBuilder extends Component
             $quiz->fill([
                 'title' => $this->title,
                 'description' => $this->description,
-                'category_id' => $this->categoryId !== '' ? (int) $this->categoryId : null,
                 'duration_minutes' => $this->durationMinutes,
                 'shuffle_questions' => $this->shuffleQuestions,
                 'shuffle_options' => $this->shuffleOptions,
@@ -324,7 +326,6 @@ class QuizBuilder extends Component
         $this->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'categoryId' => ['nullable', 'integer', 'exists:quiz_categories,id'],
             'durationMinutes' => ['required', 'integer', 'min:1'],
             'shuffleQuestions' => ['boolean'],
             'shuffleOptions' => ['boolean'],
@@ -333,7 +334,6 @@ class QuizBuilder extends Component
         ], [], [
             'title' => 'Nama quiz',
             'description' => 'Deskripsi',
-            'categoryId' => 'Kategori',
             'durationMinutes' => 'Durasi',
             'shuffleQuestions' => 'Shuffle Soal',
             'shuffleOptions' => 'Shuffle Opsi',
@@ -681,10 +681,6 @@ class QuizBuilder extends Component
 
     public function render()
     {
-        return view('livewire.admin.quiz-builder', [
-            'categories' => QuizCategory::query()
-                ->orderBy('name')
-                ->get(['id', 'name']),
-        ]);
+        return view('livewire.admin.quiz-builder');
     }
 }
