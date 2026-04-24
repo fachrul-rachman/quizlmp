@@ -61,6 +61,7 @@
                 document.addEventListener('click', function (e) {
                     const el = e.target && e.target.closest ? e.target.closest('button, a, input[type="submit"]') : null;
                     if (!el) return;
+                    if (el.hasAttribute('data-disable-once-exempt')) return;
                     if (el.hasAttribute('disabled') || el.getAttribute(disabledKey) === '1') return;
                     if (el.getAttribute('aria-disabled') === 'true') return;
 

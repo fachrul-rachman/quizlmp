@@ -34,12 +34,11 @@
 
         <div>
             <label for="password" class="block text-sm font-medium mb-1">Password</label>
-            <input
+            <x-password-input
                 id="password"
                 name="password"
-                type="password"
                 required
-                class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-900 dark:border-zinc-700 dark:bg-zinc-950 dark:focus:ring-zinc-200"
+                autocomplete="current-password"
             />
             @error('password')
                 <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>

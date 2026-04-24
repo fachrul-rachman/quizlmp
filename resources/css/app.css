@@ -47,6 +47,19 @@
     }
 }
 
+@layer base {
+    /* Prevent native browser UI buttons from overlapping the custom password toggle. */
+    input[data-password-input]::-ms-reveal,
+    input[data-password-input]::-ms-clear {
+        display: none;
+    }
+
+    input[data-password-input]::-webkit-credentials-auto-fill-button {
+        visibility: hidden;
+        pointer-events: none;
+    }
+}
+
 [data-flux-field]:not(ui-radio, ui-checkbox) {
     @apply grid gap-2;
 }

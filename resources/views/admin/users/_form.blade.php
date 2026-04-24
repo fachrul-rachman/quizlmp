@@ -26,7 +26,12 @@
     </div>
     <div>
         <label class="block text-sm font-medium mb-1">Password {{ $managedUser ? '(kosongkan jika tidak diubah)' : '' }}</label>
-        <input name="password" type="password" {{ $managedUser ? '' : 'required' }} class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
+        <x-password-input
+            name="password"
+            autocomplete="new-password"
+            :required="! $managedUser"
+            class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950"
+        />
         @error('password')
             <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
         @enderror
