@@ -67,7 +67,23 @@
                     @foreach ($questionRows as $row)
                         <div class="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
                             <div class="flex flex-wrap items-center justify-between gap-3">
-                                <div class="font-semibold">Soal {{ $row['no'] }}</div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <div class="font-semibold">Soal {{ $row['no'] }}</div>
+                                    @if ($quiz->difficulty_levels_enabled)
+                                        @php
+                                            $difficultyClass = match ($row['difficulty_level'] ?? '') {
+                                                'mudah' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
+                                                'sedang' => 'border-sky-200 bg-sky-50 text-sky-800',
+                                                'sulit' => 'border-amber-200 bg-amber-50 text-amber-800',
+                                                'sangat_sulit' => 'border-rose-200 bg-rose-50 text-rose-800',
+                                                default => 'border-slate-200 bg-slate-100 text-slate-700',
+                                            };
+                                        @endphp
+                                        <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold {{ $difficultyClass }}">
+                                            {{ $row['difficulty_label'] ?? \App\Support\QuestionDifficulty::label($row['difficulty_level'] ?? null) }}
+                                        </span>
+                                    @endif
+                                </div>
                                 <span class="{{ $answerStatusClass((string) $row['status']) }}">
                                     {{ $answerStatusLabel((string) $row['status']) }}
                                 </span>

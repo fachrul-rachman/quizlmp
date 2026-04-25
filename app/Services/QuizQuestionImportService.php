@@ -44,6 +44,7 @@ class QuizQuestionImportService
                     'question_type' => $q['question_type'],
                     'question_text' => $q['question_text'],
                     'question_image_path' => null,
+                    'difficulty_level' => $q['difficulty_level'],
                     'order_number' => $baseOrder + $offset + 1,
                     'is_active' => true,
                     'created_by' => $userId,
@@ -77,5 +78,13 @@ class QuizQuestionImportService
         });
 
         return ['inserted' => $inserted];
+    }
+
+    private function normalizeShortAnswer(string $text): string
+    {
+        $text = mb_strtolower(trim($text));
+        $text = preg_replace('/\s+/', ' ', $text) ?? $text;
+
+        return $text;
     }
 }

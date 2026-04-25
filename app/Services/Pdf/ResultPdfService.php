@@ -14,6 +14,7 @@ use App\Models\ShortAnswerKey;
 use App\Services\GoogleDrive\GoogleDriveFolderService;
 use App\Services\GoogleDrive\GoogleDriveUploadService;
 use App\Support\DeterministicShuffle;
+use App\Support\QuestionDifficulty;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Support\Facades\Log;
@@ -94,21 +95,55 @@ class ResultPdfService
      */
     private function orderedQuestionIds(Quiz $quiz, QuizAttempt $attempt): array
     {
-        $ids = Question::query()
+        $rows = Question::query()
             ->where('quiz_id', $quiz->id)
             ->whereNull('deleted_at')
             ->where('is_active', true)
             ->orderBy('order_number')
-            ->pluck('id')
-            ->map(fn ($v) => (int) $v)
+            ->get(['id', 'difficulty_level'])
+            ->map(fn ($question) => [
+                'id' => (int) $question->id,
+                'difficulty_level' => (string) ($question->difficulty_level ?? QuestionDifficulty::DEFAULT),
+            ])
             ->all();
 
-        if (! $quiz->shuffle_questions || count($ids) <= 1) {
+        if ($rows === []) {
+            return [];
+        }
+
+        if (! $quiz->difficulty_levels_enabled) {
+            $ids = array_map(fn (array $row) => (int) $row['id'], $rows);
+            if (! $quiz->shuffle_questions || count($ids) <= 1) {
+                return $ids;
+            }
+
+            $seed = $this->seedFromAttempt((int) $attempt->id, (int) $quiz->id);
+            return DeterministicShuffle::shuffle($ids, $seed);
+        }
+
+        $ids = [];
+        foreach (QuestionDifficulty::LEVELS as $difficultyLevel) {
+            $bucket = array_values(array_filter(
+                $rows,
+                fn (array $row) => (($row['difficulty_level'] ?: QuestionDifficulty::DEFAULT) === $difficultyLevel)
+            ));
+
+            $bucketIds = array_map(fn (array $row) => (int) $row['id'], $bucket);
+            if ($quiz->shuffle_questions && count($bucketIds) > 1) {
+                $bucketIds = DeterministicShuffle::shuffle(
+                    $bucketIds,
+                    $this->seedForDifficulty((int) $attempt->id, (int) $quiz->id, $difficultyLevel)
+                );
+            }
+
+            array_push($ids, ...$bucketIds);
+        }
+
+        if ($ids !== []) {
             return $ids;
         }
 
-        $seed = $this->seedFromAttempt((int) $attempt->id, (int) $quiz->id);
-        return DeterministicShuffle::shuffle($ids, $seed);
+        return array_map(fn (array $row) => (int) $row['id'], $rows);
     }
 
     /**
@@ -125,7 +160,7 @@ class ResultPdfService
     {
         $questions = Question::query()
             ->whereIn('id', $questionIds)
-            ->get(['id', 'question_text', 'question_type'])
+            ->get(['id', 'question_text', 'difficulty_level', 'question_type'])
             ->keyBy('id');
 
         $answers = AttemptAnswer::query()
@@ -215,6 +250,8 @@ class ResultPdfService
 
             $rows[] = [
                 'no' => $idx + 1,
+                'difficulty_level' => (string) ($q->difficulty_level ?? QuestionDifficulty::DEFAULT),
+                'difficulty_label' => QuestionDifficulty::label((string) ($q->difficulty_level ?? QuestionDifficulty::DEFAULT)),
                 'question_text' => (string) $q->question_text,
                 'participant_answer' => $participantAnswer,
                 'correct_answer' => $correctAnswer,
@@ -382,6 +419,13 @@ class ResultPdfService
     private function seedForQuestion(int $attemptId, int $quizPk, int $questionId): int
     {
         $hash = hash('sha256', 'attempt:'.$attemptId.':quiz:'.$quizPk.':q:'.$questionId, true);
+        $unpacked = unpack('N', substr($hash, 0, 4));
+        return (int) ($unpacked[1] ?? 1);
+    }
+
+    private function seedForDifficulty(int $attemptId, int $quizPk, string $difficultyLevel): int
+    {
+        $hash = hash('sha256', 'attempt:'.$attemptId.':quiz:'.$quizPk.':difficulty:'.$difficultyLevel, true);
         $unpacked = unpack('N', substr($hash, 0, 4));
         return (int) ($unpacked[1] ?? 1);
     }

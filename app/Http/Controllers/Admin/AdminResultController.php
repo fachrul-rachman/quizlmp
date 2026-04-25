@@ -14,6 +14,7 @@ use App\Models\ShortAnswerKey;
 use App\Services\Export\ResultExportXlsxService;
 use App\Support\DeterministicShuffle;
 use App\Support\ParticipantAppliedForNormalizer;
+use App\Support\QuestionDifficulty;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -119,7 +120,7 @@ class AdminResultController extends Controller
         $isSuperAdmin = (($user?->role ?? null) === 'super_admin');
 
         $quizResult->load([
-            'quiz:id,title,description,duration_minutes,shuffle_questions,shuffle_options,created_by',
+            'quiz:id,title,description,duration_minutes,shuffle_questions,shuffle_options,difficulty_levels_enabled,created_by',
             'attempt:id,quiz_id,participant_name,participant_applied_for,started_at,submitted_at,time_limit_minutes,status',
         ]);
 
@@ -244,20 +245,54 @@ class AdminResultController extends Controller
      */
     private function orderedQuestionIds(Quiz $quiz, QuizAttempt $attempt): array
     {
-        $ids = Question::query()
+        $rows = Question::query()
             ->where('quiz_id', $quiz->id)
             ->whereNull('deleted_at')
             ->where('is_active', true)
             ->orderBy('order_number')
-            ->pluck('id')
-            ->map(fn ($value) => (int) $value)
+            ->get(['id', 'difficulty_level'])
+            ->map(fn ($question) => [
+                'id' => (int) $question->id,
+                'difficulty_level' => (string) ($question->difficulty_level ?? QuestionDifficulty::DEFAULT),
+            ])
             ->all();
 
-        if (! $quiz->shuffle_questions || count($ids) <= 1) {
+        if ($rows === []) {
+            return [];
+        }
+
+        if (! $quiz->difficulty_levels_enabled) {
+            $ids = array_map(fn (array $row) => (int) $row['id'], $rows);
+            if (! $quiz->shuffle_questions || count($ids) <= 1) {
+                return $ids;
+            }
+
+            return DeterministicShuffle::shuffle($ids, $this->seedFromAttempt((int) $attempt->id, (int) $quiz->id));
+        }
+
+        $ids = [];
+        foreach (QuestionDifficulty::LEVELS as $difficultyLevel) {
+            $bucket = array_values(array_filter(
+                $rows,
+                fn (array $row) => (($row['difficulty_level'] ?: QuestionDifficulty::DEFAULT) === $difficultyLevel)
+            ));
+
+            $bucketIds = array_map(fn (array $row) => (int) $row['id'], $bucket);
+            if ($quiz->shuffle_questions && count($bucketIds) > 1) {
+                $bucketIds = DeterministicShuffle::shuffle(
+                    $bucketIds,
+                    $this->seedForDifficulty((int) $attempt->id, (int) $quiz->id, $difficultyLevel)
+                );
+            }
+
+            array_push($ids, ...$bucketIds);
+        }
+
+        if ($ids !== []) {
             return $ids;
         }
 
-        return DeterministicShuffle::shuffle($ids, $this->seedFromAttempt((int) $attempt->id, (int) $quiz->id));
+        return array_map(fn (array $row) => (int) $row['id'], $rows);
     }
 
     /**
@@ -268,7 +303,7 @@ class AdminResultController extends Controller
     {
         $questions = Question::query()
             ->whereIn('id', $questionIds)
-            ->get(['id', 'question_text', 'question_image_path', 'question_type'])
+            ->get(['id', 'question_text', 'question_image_path', 'difficulty_level', 'question_type'])
             ->keyBy('id');
 
         $answers = AttemptAnswer::query()
@@ -359,6 +394,8 @@ class AdminResultController extends Controller
             $rows[] = [
                 'no' => $index + 1,
                 'question_type' => (string) $question->question_type,
+                'difficulty_level' => (string) ($question->difficulty_level ?? QuestionDifficulty::DEFAULT),
+                'difficulty_label' => QuestionDifficulty::label((string) ($question->difficulty_level ?? QuestionDifficulty::DEFAULT)),
                 'question_text' => (string) ($question->question_text ?? ''),
                 'question_image_url' => $this->publicStorageUrl($question->question_image_path),
                 'participant_answer' => $participantAnswer,
@@ -411,6 +448,14 @@ class AdminResultController extends Controller
     private function seedForQuestion(int $attemptId, int $quizId, int $questionId): int
     {
         $hash = hash('sha256', 'attempt:'.$attemptId.':quiz:'.$quizId.':q:'.$questionId, true);
+        $unpacked = unpack('N', substr($hash, 0, 4));
+
+        return (int) ($unpacked[1] ?? 1);
+    }
+
+    private function seedForDifficulty(int $attemptId, int $quizId, string $difficultyLevel): int
+    {
+        $hash = hash('sha256', 'attempt:'.$attemptId.':quiz:'.$quizId.':difficulty:'.$difficultyLevel, true);
         $unpacked = unpack('N', substr($hash, 0, 4));
 
         return (int) ($unpacked[1] ?? 1);

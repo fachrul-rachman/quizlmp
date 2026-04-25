@@ -12,6 +12,7 @@ use App\Services\Discord\DiscordResultWebhookService;
 use App\Services\GradeService;
 use App\Services\Pdf\ResultPdfService;
 use App\Support\DeterministicShuffle;
+use App\Support\QuestionDifficulty;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -35,6 +36,7 @@ class QuizWork extends Component
     public int $quizId = 0;
     public int $quizPk = 0;
     public bool $instantFeedbackEnabled = false;
+    public bool $difficultyLevelsEnabled = false;
     public bool $shuffleOptions = false;
 
     public int $step = 1;
@@ -46,6 +48,7 @@ class QuizWork extends Component
     public ?string $currentQuestionText = null;
     public ?string $currentQuestionImagePath = null;
     public ?string $currentQuestionType = null;
+    public ?string $currentDifficultyLevel = null;
 
     /** @var array<int, array{id:int,label:string,text:string,image_path:?string,is_correct:bool}> */
     public array $currentOptions = [];
@@ -61,6 +64,9 @@ class QuizWork extends Component
     public int $answeredCount = 0;
     public int $totalQuestions = 0;
 
+    /** @var array<int, array{question_id:int, step:int}> */
+    public array $skippedQuestionButtons = [];
+
     private bool $suppressInstantFeedbackLock = false;
 
     public function mount(string $token): void
@@ -68,7 +74,7 @@ class QuizWork extends Component
         $this->token = $token;
 
         $link = QuizLink::query()
-            ->with(['quiz:id,title,is_active,shuffle_questions,shuffle_options,instant_feedback_enabled', 'attempt'])
+            ->with(['quiz:id,title,is_active,shuffle_questions,shuffle_options,instant_feedback_enabled,difficulty_levels_enabled', 'attempt'])
             ->where('token', $token)
             ->first();
 
@@ -122,6 +128,7 @@ class QuizWork extends Component
         $this->quizId = (int) $attempt->quiz_id;
         $this->quizPk = (int) $link->quiz->id;
         $this->instantFeedbackEnabled = (bool) $link->quiz->instant_feedback_enabled;
+        $this->difficultyLevelsEnabled = (bool) $link->quiz->difficulty_levels_enabled;
         $this->shuffleOptions = (bool) $link->quiz->shuffle_options;
 
         $this->secondsRemaining = $this->calculateSecondsRemaining($attempt);
@@ -130,7 +137,13 @@ class QuizWork extends Component
             return;
         }
 
-        $this->questionIds = $this->buildOrderedQuestionIds($this->quizId, (bool) $link->quiz->shuffle_questions, $this->attemptId, (int) $link->quiz->id);
+        $this->questionIds = $this->buildOrderedQuestionIds(
+            $this->quizId,
+            (bool) $link->quiz->shuffle_questions,
+            (bool) $link->quiz->difficulty_levels_enabled,
+            $this->attemptId,
+            (int) $link->quiz->id
+        );
         if ($this->questionIds === []) {
             $this->state = 'no_questions';
             return;
@@ -318,6 +331,38 @@ class QuizWork extends Component
         $this->goToNextWorkStepOrFinalize();
     }
 
+    public function goToSkippedQuestion(int $questionId): void
+    {
+        $this->expireAttemptIfMultiUseLinkExpired();
+        if ($this->state === 'expired') {
+            return;
+        }
+
+        if ($this->pendingAutoAdvance || $this->attemptId <= 0 || $questionId <= 0) {
+            return;
+        }
+
+        $stepIndex = array_search($questionId, $this->questionIds, true);
+        if (! is_int($stepIndex)) {
+            return;
+        }
+
+        $isSkipped = AttemptAnswer::query()
+            ->where('quiz_attempt_id', $this->attemptId)
+            ->where('question_id', $questionId)
+            ->whereNotNull('skipped_at')
+            ->exists();
+
+        if (! $isSkipped) {
+            $this->refreshProgress();
+            return;
+        }
+
+        $this->step = $stepIndex + 1;
+        $this->loadStep($this->attemptId, $this->quizId, $this->shuffleOptions, $this->quizPk);
+        $this->refreshProgress();
+    }
+
     public function advanceAfterInstantFeedback(): void
     {
         $this->expireAttemptIfMultiUseLinkExpired();
@@ -361,19 +406,32 @@ class QuizWork extends Component
         $this->totalQuestions = count($this->questionIds);
         if ($this->attemptId <= 0 || $this->totalQuestions === 0) {
             $this->answeredCount = 0;
+            $this->skippedQuestionButtons = [];
             return;
         }
 
         $answers = AttemptAnswer::query()
             ->where('quiz_attempt_id', $this->attemptId)
             ->whereIn('question_id', $this->questionIds)
-            ->get(['question_id', 'selected_option_id', 'answer_text'])
+            ->get(['question_id', 'selected_option_id', 'answer_text', 'skipped_at'])
             ->keyBy('question_id');
 
         $answered = 0;
+        $skipped = [];
         foreach ($this->questionIds as $qid) {
             $a = $answers->get($qid);
             if (! $a) {
+                continue;
+            }
+
+            if ($a->skipped_at) {
+                $stepIndex = array_search((int) $qid, $this->questionIds, true);
+                if (is_int($stepIndex)) {
+                    $skipped[] = [
+                        'question_id' => (int) $qid,
+                        'step' => $stepIndex + 1,
+                    ];
+                }
                 continue;
             }
 
@@ -388,6 +446,7 @@ class QuizWork extends Component
         }
 
         $this->answeredCount = $answered;
+        $this->skippedQuestionButtons = $skipped;
     }
 
     private function moveToFirstUnworkedStep(): bool
@@ -403,6 +462,8 @@ class QuizWork extends Component
             ->get(['question_id', 'selected_option_id', 'answer_text', 'skipped_at'])
             ->keyBy('question_id');
 
+        $firstSkippedStep = null;
+
         foreach ($this->questionIds as $idx => $qid) {
             $a = $answers->get($qid);
             if (! $a) {
@@ -411,6 +472,7 @@ class QuizWork extends Component
             }
 
             if ($a->skipped_at) {
+                $firstSkippedStep ??= $idx + 1;
                 continue;
             }
 
@@ -426,29 +488,74 @@ class QuizWork extends Component
             return true;
         }
 
+        if ($firstSkippedStep !== null) {
+            $this->step = $firstSkippedStep;
+            return true;
+        }
+
         return false;
     }
 
     /**
      * @return array<int, int>
      */
-    private function buildOrderedQuestionIds(int $quizId, bool $shuffleQuestions, int $attemptId, int $quizPk): array
+    private function buildOrderedQuestionIds(
+        int $quizId,
+        bool $shuffleQuestions,
+        bool $difficultyLevelsEnabled,
+        int $attemptId,
+        int $quizPk
+    ): array
     {
-        $ids = DB::table('questions')
+        $rows = DB::table('questions')
             ->where('quiz_id', $quizId)
             ->whereNull('deleted_at')
             ->where('is_active', true)
             ->orderBy('order_number')
-            ->pluck('id')
-            ->map(fn ($v) => (int) $v)
+            ->get(['id', 'difficulty_level'])
+            ->map(fn ($row) => [
+                'id' => (int) $row->id,
+                'difficulty_level' => (string) ($row->difficulty_level ?? QuestionDifficulty::DEFAULT),
+            ])
             ->all();
 
-        if (! $shuffleQuestions || count($ids) <= 1) {
+        if ($rows === []) {
+            return [];
+        }
+
+        if (! $difficultyLevelsEnabled) {
+            $ids = array_map(fn (array $row) => (int) $row['id'], $rows);
+            if (! $shuffleQuestions || count($ids) <= 1) {
+                return $ids;
+            }
+
+            $seed = $this->seedFromAttempt($attemptId, $quizPk);
+            return DeterministicShuffle::shuffle($ids, $seed);
+        }
+
+        $ids = [];
+        foreach (QuestionDifficulty::LEVELS as $difficultyLevel) {
+            $bucket = array_values(array_filter(
+                $rows,
+                fn (array $row) => (($row['difficulty_level'] ?: QuestionDifficulty::DEFAULT) === $difficultyLevel)
+            ));
+
+            $bucketIds = array_map(fn (array $row) => (int) $row['id'], $bucket);
+            if ($shuffleQuestions && count($bucketIds) > 1) {
+                $bucketIds = DeterministicShuffle::shuffle(
+                    $bucketIds,
+                    $this->seedForDifficulty($attemptId, $quizPk, $difficultyLevel)
+                );
+            }
+
+            array_push($ids, ...$bucketIds);
+        }
+
+        if ($ids !== []) {
             return $ids;
         }
 
-        $seed = $this->seedFromAttempt($attemptId, $quizPk);
-        return DeterministicShuffle::shuffle($ids, $seed);
+        return array_map(fn (array $row) => (int) $row['id'], $rows);
     }
 
     private function seedFromAttempt(int $attemptId, int $quizPk): int
@@ -461,6 +568,13 @@ class QuizWork extends Component
     private function seedForQuestion(int $attemptId, int $quizPk, int $questionId): int
     {
         $hash = hash('sha256', 'attempt:'.$attemptId.':quiz:'.$quizPk.':q:'.$questionId, true);
+        $unpacked = unpack('N', substr($hash, 0, 4));
+        return (int) ($unpacked[1] ?? 1);
+    }
+
+    private function seedForDifficulty(int $attemptId, int $quizPk, string $difficultyLevel): int
+    {
+        $hash = hash('sha256', 'attempt:'.$attemptId.':quiz:'.$quizPk.':difficulty:'.$difficultyLevel, true);
         $unpacked = unpack('N', substr($hash, 0, 4));
         return (int) ($unpacked[1] ?? 1);
     }
@@ -485,6 +599,7 @@ class QuizWork extends Component
         $this->currentQuestionText = (string) $question->question_text;
         $this->currentQuestionImagePath = is_string($question->question_image_path) ? $question->question_image_path : null;
         $this->currentQuestionType = (string) $question->question_type;
+        $this->currentDifficultyLevel = (string) ($question->difficulty_level ?? QuestionDifficulty::DEFAULT);
         $this->currentAnswerIsCorrect = null;
         $this->currentCorrectOptionId = null;
         $this->currentAnswerLocked = false;

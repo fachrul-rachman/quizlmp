@@ -53,6 +53,11 @@
   .bb { background: #E8F5E9; color: #1B5E20; border: 1px solid #A5D6A7; }
   .bs { background: #FFEBEE; color: #B71C1C; border: 1px solid #EF9A9A; }
   .bu { background: #E3F2FD; color: #0D47A1; border: 1px solid #90CAF9; }
+  .dpill { display: inline-block; margin-bottom: 4px; padding: 2px 8px; border-radius: 12px; font-size: 8.5px; font-weight: 700; text-transform: uppercase; }
+  .dmudah { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+  .dsedang { background: #E0F2FE; color: #075985; border: 1px solid #BAE6FD; }
+  .dsulit { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
+  .dsangat_sulit { background: #FFE4E6; color: #9F1239; border: 1px solid #FECDD3; }
   .footer { margin-top: 14px; text-align: center; font-size: 9.5px; color: var(--color-text-secondary); }
 </style>
 
@@ -105,7 +110,12 @@
         @foreach ($rows as $row)
           <tr>
             <td class="no">{{ $row['no'] }}</td>
-            <td class="soal">{{ $row['question_text'] }}</td>
+            <td class="soal">
+              @if ($quiz->difficulty_levels_enabled)
+                <span class="dpill d{{ $row['difficulty_level'] ?? 'mudah' }}">{{ $row['difficulty_label'] ?? \App\Support\QuestionDifficulty::label($row['difficulty_level'] ?? null) }}</span><br>
+              @endif
+              {{ $row['question_text'] }}
+            </td>
             <td class="c {{ $row['status'] === 'wrong' ? 'red' : 'grn' }}">{{ $row['participant_answer'] ?? '-' }}</td>
             <td class="c grn">{{ $row['correct_answer'] ?? '-' }}</td>
             <td class="c">

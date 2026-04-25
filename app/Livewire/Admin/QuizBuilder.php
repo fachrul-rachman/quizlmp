@@ -7,6 +7,7 @@ use App\Models\QuestionOption;
 use App\Models\Quiz;
 use App\Models\ShortAnswerKey;
 use App\Services\QuizQuestionImportParser;
+use App\Support\QuestionDifficulty;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -25,6 +26,7 @@ class QuizBuilder extends Component
     public bool $shuffleQuestions = false;
     public bool $shuffleOptions = false;
     public bool $instantFeedbackEnabled = false;
+    public bool $difficultyLevelsEnabled = false;
     public bool $isActive = true;
 
     /**
@@ -62,6 +64,7 @@ class QuizBuilder extends Component
         $this->shuffleQuestions = (bool) $quiz->shuffle_questions;
         $this->shuffleOptions = (bool) $quiz->shuffle_options;
         $this->instantFeedbackEnabled = (bool) $quiz->instant_feedback_enabled;
+        $this->difficultyLevelsEnabled = (bool) $quiz->difficulty_levels_enabled;
         $this->isActive = (bool) $quiz->is_active;
 
         $this->questions = $quiz->questions->map(function (Question $question) {
@@ -96,6 +99,7 @@ class QuizBuilder extends Component
                 'question_image_path' => $question->question_image_path,
                 'question_image_upload' => null,
                 'remove_question_image' => false,
+                'difficulty_level' => $question->difficulty_level ?: QuestionDifficulty::DEFAULT,
                 'question_type' => $question->question_type,
                 'is_active' => (bool) $question->is_active,
                 'options' => $options,
@@ -204,6 +208,7 @@ class QuizBuilder extends Component
                 'shuffle_questions' => $this->shuffleQuestions,
                 'shuffle_options' => $this->shuffleOptions,
                 'instant_feedback_enabled' => $this->instantFeedbackEnabled,
+                'difficulty_levels_enabled' => $this->difficultyLevelsEnabled,
                 'is_active' => $this->isActive,
             ]);
 
@@ -234,6 +239,7 @@ class QuizBuilder extends Component
                 $question->fill([
                     'question_type' => $q['question_type'],
                     'question_text' => $this->nullableTrim($q['question_text'] ?? null),
+                    'difficulty_level' => $this->normalizedDifficulty($q['difficulty_level'] ?? null),
                     'order_number' => $pos + 1,
                     'is_active' => (bool) ($q['is_active'] ?? true),
                 ]);
@@ -294,6 +300,7 @@ class QuizBuilder extends Component
                     'question_image_path' => null,
                     'question_image_upload' => null,
                     'remove_question_image' => false,
+                    'difficulty_level' => $q['difficulty_level'] ?? QuestionDifficulty::DEFAULT,
                     'question_type' => 'multiple_choice',
                     'is_active' => true,
                     'options' => $options,
@@ -306,6 +313,7 @@ class QuizBuilder extends Component
                     'question_image_path' => null,
                     'question_image_upload' => null,
                     'remove_question_image' => false,
+                    'difficulty_level' => $q['difficulty_level'] ?? QuestionDifficulty::DEFAULT,
                     'question_type' => 'short_answer',
                     'is_active' => true,
                     'options' => [
@@ -330,6 +338,7 @@ class QuizBuilder extends Component
             'shuffleQuestions' => ['boolean'],
             'shuffleOptions' => ['boolean'],
             'instantFeedbackEnabled' => ['boolean'],
+            'difficultyLevelsEnabled' => ['boolean'],
             'isActive' => ['boolean'],
         ], [], [
             'title' => 'Nama quiz',
@@ -338,6 +347,7 @@ class QuizBuilder extends Component
             'shuffleQuestions' => 'Shuffle Soal',
             'shuffleOptions' => 'Shuffle Opsi',
             'instantFeedbackEnabled' => 'Tampilkan Jawaban Benar',
+            'difficultyLevelsEnabled' => 'Kesulitan Bertingkat',
             'isActive' => 'Status Aktif',
         ]);
     }
@@ -367,6 +377,13 @@ class QuizBuilder extends Component
             if (! $this->questionHasContent($q)) {
                 throw ValidationException::withMessages([
                     "questions.$qi.question_text" => 'Soal wajib punya teks atau gambar.',
+                ]);
+            }
+
+            $difficulty = QuestionDifficulty::normalize($q['difficulty_level'] ?? null);
+            if ($difficulty === null || ! QuestionDifficulty::isValid($difficulty)) {
+                throw ValidationException::withMessages([
+                    "questions.$qi.difficulty_level" => 'Tingkat kesulitan tidak valid.',
                 ]);
             }
 
@@ -513,6 +530,7 @@ class QuizBuilder extends Component
             'question_image_path' => null,
             'question_image_upload' => null,
             'remove_question_image' => false,
+            'difficulty_level' => QuestionDifficulty::DEFAULT,
             'question_type' => 'multiple_choice',
             'is_active' => true,
             'options' => [
@@ -573,6 +591,13 @@ class QuizBuilder extends Component
         $text = trim((string) ($value ?? ''));
 
         return $text === '' ? null : $text;
+    }
+
+    private function normalizedDifficulty(mixed $value): string
+    {
+        $difficulty = QuestionDifficulty::normalize($value);
+
+        return $difficulty ?? QuestionDifficulty::DEFAULT;
     }
 
     private function storeQuestionImage(Question $question, array $payload): ?string

@@ -16,6 +16,7 @@ class Question extends Model
         'question_type',
         'question_text',
         'question_image_path',
+        'difficulty_level',
         'order_number',
         'is_active',
         'created_by',

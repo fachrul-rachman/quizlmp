@@ -46,13 +46,53 @@
             </div>
         @else
             <div class="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-100">
-                Tidak ada tombol kembali. Isi jawaban, lalu klik "Jawab" untuk menyimpan dan lanjut otomatis ke soal berikutnya.
+                Gunakan "Skip" untuk menandai soal yang ingin dikerjakan lagi sebelum waktu habis.
             </div>
         @endif
 
         <div class="mt-6">
+            @if (!empty($skippedQuestionButtons))
+                <div class="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900/50 dark:bg-amber-950/20">
+                    <div class="text-sm font-semibold text-amber-950 dark:text-amber-100">Soal di-skip</div>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        @foreach ($skippedQuestionButtons as $item)
+                            @php
+                                $isCurrentSkipped = (int) $currentQuestionId === (int) $item['question_id'];
+                                $buttonClass = $isCurrentSkipped
+                                    ? 'border-amber-700 bg-amber-700 text-white'
+                                    : 'border-amber-300 bg-white text-amber-900 hover:bg-amber-100 dark:border-amber-700 dark:bg-zinc-950 dark:text-amber-100 dark:hover:bg-amber-950/40';
+                            @endphp
+                            <button
+                                type="button"
+                                wire:click="goToSkippedQuestion({{ (int) $item['question_id'] }})"
+                                @disabled($pendingAutoAdvance)
+                                class="inline-flex h-9 min-w-9 items-center justify-center rounded-md border px-3 text-sm font-semibold shadow-sm transition disabled:opacity-50 {{ $buttonClass }}"
+                            >
+                                {{ $item['step'] }}
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
             <div class="flex items-center justify-between gap-3">
-                <div class="text-sm font-semibold">Soal {{ $step }} dari {{ count($questionIds) }}</div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="text-sm font-semibold">Soal {{ $step }} dari {{ count($questionIds) }}</div>
+                    @if ($difficultyLevelsEnabled && $currentDifficultyLevel)
+                        @php
+                            $difficultyClass = match ($currentDifficultyLevel) {
+                                'mudah' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
+                                'sedang' => 'border-sky-200 bg-sky-50 text-sky-800',
+                                'sulit' => 'border-amber-200 bg-amber-50 text-amber-800',
+                                'sangat_sulit' => 'border-rose-200 bg-rose-50 text-rose-800',
+                                default => 'border-slate-200 bg-slate-100 text-slate-700',
+                            };
+                        @endphp
+                        <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold {{ $difficultyClass }}">
+                            {{ \App\Support\QuestionDifficulty::label($currentDifficultyLevel) }}
+                        </span>
+                    @endif
+                </div>
             </div>
 
             <div class="mt-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">

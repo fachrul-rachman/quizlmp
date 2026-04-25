@@ -1,5 +1,6 @@
 @php
     $optionKeys = ['A', 'B', 'C', 'D', 'E'];
+    $difficultyOptions = \App\Support\QuestionDifficulty::options();
 @endphp
 
 <div class="qb">
@@ -465,6 +466,36 @@
             justify-content: center;
             border: 1px solid rgba(45,107,228,0.2);
         }
+        .qb .difficulty-pill {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 3px 9px;
+            font-size: 10.5px;
+            font-weight: 700;
+            border: 1px solid transparent;
+            line-height: 1;
+        }
+        .qb .difficulty-mudah {
+            background: #DCFCE7;
+            color: #166534;
+            border-color: #BBF7D0;
+        }
+        .qb .difficulty-sedang {
+            background: #E0F2FE;
+            color: #075985;
+            border-color: #BAE6FD;
+        }
+        .qb .difficulty-sulit {
+            background: #FEF3C7;
+            color: #92400E;
+            border-color: #FDE68A;
+        }
+        .qb .difficulty-sangat_sulit {
+            background: #FFE4E6;
+            color: #9F1239;
+            border-color: #FECDD3;
+        }
         .qb .soal-actions { display: flex; align-items: center; gap: 6px; }
 
         .qb .del-btn {
@@ -492,9 +523,12 @@
         .qb .jenis-row {
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
             align-items: flex-end;
         }
-        .qb .jenis-row > div:first-child { flex: 1; }
+        .qb .jenis-row > div:first-child { flex: 1 1 180px; }
+        .qb .jenis-row > .jenis-level { flex: 1 1 180px; }
+        .qb .jenis-row > .jenis-status { flex: 0 0 auto; }
 
         /* ─── STATUS BADGE ─── */
         .qb .badge-aktif {
@@ -828,6 +862,18 @@
 
                 <div class="toggle-row">
                     <div class="toggle-info">
+                        <div class="toggle-label">Kesulitan Bertingkat</div>
+                        <div class="toggle-desc">Kelompokkan soal dari mudah sampai sangat sulit</div>
+                        @error('difficultyLevelsEnabled') <div class="error">{{ $message }}</div> @enderror
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" wire:model.live="difficultyLevelsEnabled" />
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="toggle-row">
+                    <div class="toggle-info">
                         <div class="toggle-label">Shuffle Opsi Jawaban</div>
                         <div class="toggle-desc">Acak urutan pilihan jawaban</div>
                     </div>
@@ -882,7 +928,7 @@
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="16" height="16" rx="3" stroke="#2D6BE4" stroke-width="1.4"/><path d="M7 10h6M10 7v6" stroke="#2D6BE4" stroke-width="1.4" stroke-linecap="round"/></svg>
                     </div>
                     <div class="import-text"><b>Pilih file .xlsx</b> atau seret ke sini</div>
-                    <div class="import-hint">Kolom: Soal, Jenis Jawaban, Opsi A–E, Jawaban Benar, Short Answer</div>
+                    <div class="import-hint">Kolom: Soal, Jenis Jawaban, Opsi A–E, Jawaban Benar, Short Answer, Tingkat Kesulitan</div>
                 </div>
 
                 <div class="import-file-row">
@@ -927,6 +973,14 @@
                             <div class="soal-badge">
                                 <div class="soal-num-dot">{{ $qi + 1 }}</div>
                                 <span>Soal {{ $qi + 1 }}</span>
+                                @if ($difficultyLevelsEnabled)
+                                    @php
+                                        $difficultyLevel = $q['difficulty_level'] ?? \App\Support\QuestionDifficulty::DEFAULT;
+                                    @endphp
+                                    <span class="difficulty-pill difficulty-{{ $difficultyLevel }}">
+                                        {{ \App\Support\QuestionDifficulty::label($difficultyLevel) }}
+                                    </span>
+                                @endif
                             </div>
                             <div class="soal-actions">
                                 <button type="button" wire:click="removeQuestion({{ $qi }})" class="del-btn">
@@ -975,13 +1029,24 @@
                                 <div class="jenis-row">
                                     <div>
                                         <label class="label">Jenis Jawaban</label>
-                                    <select wire:model.live="questions.{{ $qi }}.question_type">
-                                        <option value="multiple_choice">Multiple Choice</option>
-                                        <option value="short_answer">Short Answer</option>
-                                    </select>
+                                        <select wire:model.live="questions.{{ $qi }}.question_type">
+                                            <option value="multiple_choice">Multiple Choice</option>
+                                            <option value="short_answer">Short Answer</option>
+                                        </select>
                                         @error('questions.'.$qi.'.question_type') <div class="error">{{ $message }}</div> @enderror
                                     </div>
-                                    <div>
+                                    @if ($difficultyLevelsEnabled)
+                                        <div class="jenis-level">
+                                            <label class="label">Tingkat Kesulitan</label>
+                                            <select wire:model.live="questions.{{ $qi }}.difficulty_level">
+                                                @foreach ($difficultyOptions as $value => $label)
+                                                    <option value="{{ $value }}">{{ $label }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('questions.'.$qi.'.difficulty_level') <div class="error">{{ $message }}</div> @enderror
+                                        </div>
+                                    @endif
+                                    <div class="jenis-status">
                                         @if (!empty($q['is_active']))
                                             <span class="badge-aktif">
                                                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>

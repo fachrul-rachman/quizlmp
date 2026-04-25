@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\QuestionDifficulty;
 use App\Services\Xlsx\SimpleXlsxReader;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
@@ -17,6 +18,7 @@ class QuizQuestionImportParser
      * @return array<int, array{
      *   question_text:string,
      *   question_type:'multiple_choice'|'short_answer',
+     *   difficulty_level:string,
      *   options:array<int, array{option_key:string, option_text:string, is_correct:bool, sort_order:int}>,
      *   short_answers:array<int, string>
      * }>
@@ -90,6 +92,9 @@ class QuizQuestionImportParser
             'jawaban_benar',
             'short_answer',
         ];
+        $optional = [
+            'tingkat_kesulitan',
+        ];
 
         $normalized = [];
         foreach ($headerRow as $col => $value) {
@@ -107,6 +112,12 @@ class QuizQuestionImportParser
                 ]);
             }
             $map[$key] = $normalized[$key];
+        }
+
+        foreach ($optional as $key) {
+            if (isset($normalized[$key])) {
+                $map[$key] = $normalized[$key];
+            }
         }
 
         return $map;
@@ -127,6 +138,7 @@ class QuizQuestionImportParser
             'opsi e' => 'opsi_e',
             'jawaban benar' => 'jawaban_benar',
             'short answer' => 'short_answer',
+            'tingkat kesulitan' => 'tingkat_kesulitan',
             default => '',
         };
     }
@@ -164,6 +176,7 @@ class QuizQuestionImportParser
      * @return array{
      *   question_text:string,
      *   question_type:'multiple_choice'|'short_answer',
+     *   difficulty_level:string,
      *   options:array<int, array{option_key:string, option_text:string, is_correct:bool, sort_order:int}>,
      *   short_answers:array<int, string>
      * }
@@ -184,6 +197,8 @@ class QuizQuestionImportParser
                 'jenis_jawaban' => "Baris $rowNumber: Jenis Jawaban tidak valid.",
             ]);
         }
+
+        $difficulty = $this->parseDifficulty($values['tingkat_kesulitan'] ?? '', $rowNumber);
 
         if ($type === 'multiple_choice') {
             $shortAnswer = trim((string) ($values['short_answer'] ?? ''));
@@ -261,6 +276,7 @@ class QuizQuestionImportParser
             return [
                 'question_text' => $questionText,
                 'question_type' => 'multiple_choice',
+                'difficulty_level' => $difficulty,
                 'options' => $options,
                 'short_answers' => [],
             ];
@@ -284,6 +300,7 @@ class QuizQuestionImportParser
         return [
             'question_text' => $questionText,
             'question_type' => 'short_answer',
+            'difficulty_level' => $difficulty,
             'options' => [],
             'short_answers' => $shortAnswers,
         ];
@@ -295,6 +312,21 @@ class QuizQuestionImportParser
         $raw = preg_replace('/\s+/', ' ', $raw) ?? $raw;
         $raw = str_replace(' ', '_', $raw);
         return $raw;
+    }
+
+    private function parseDifficulty(string $raw, int $rowNumber): string
+    {
+        $rawNormalized = mb_strtolower(trim($raw));
+        $rawNormalized = preg_replace('/\s+/', ' ', $rawNormalized) ?? $rawNormalized;
+
+        $difficulty = QuestionDifficulty::normalize($raw);
+        if ($difficulty === null || $rawNormalized === 'sangat_sulit') {
+            throw ValidationException::withMessages([
+                'tingkat_kesulitan' => "Baris $rowNumber: Tingkat Kesulitan harus mudah, sedang, sulit, atau sangat sulit.",
+            ]);
+        }
+
+        return $difficulty;
     }
 
     /**
@@ -348,4 +380,3 @@ class QuizQuestionImportParser
         return implode("\n", array_values(array_unique($lines)));
     }
 }
-

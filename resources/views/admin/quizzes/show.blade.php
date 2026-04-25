@@ -44,6 +44,10 @@
                 <div class="mt-1 font-semibold">{{ $quiz->instant_feedback_enabled ? 'Ya' : 'Tidak' }}</div>
             </div>
             <div>
+                <div class="text-sm text-zinc-500 dark:text-zinc-400">Kesulitan Bertingkat</div>
+                <div class="mt-1 font-semibold">{{ $quiz->difficulty_levels_enabled ? 'Ya' : 'Tidak' }}</div>
+            </div>
+            <div>
                 <div class="text-sm text-zinc-500 dark:text-zinc-400">Status</div>
                 <div class="mt-1">
                     <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold {{ $quiz->is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-slate-100 text-slate-700' }}">
@@ -74,7 +78,23 @@
                 @foreach ($quiz->questions as $q)
                     <div class="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
                         <div class="flex flex-wrap items-center justify-between gap-3">
-                            <div class="font-semibold">Soal {{ $q->order_number }}</div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <div class="font-semibold">Soal {{ $q->order_number }}</div>
+                                @if ($quiz->difficulty_levels_enabled)
+                                    @php
+                                        $difficultyClass = match ($q->difficulty_level ?? '') {
+                                            'mudah' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
+                                            'sedang' => 'border-sky-200 bg-sky-50 text-sky-800',
+                                            'sulit' => 'border-amber-200 bg-amber-50 text-amber-800',
+                                            'sangat_sulit' => 'border-rose-200 bg-rose-50 text-rose-800',
+                                            default => 'border-slate-200 bg-slate-100 text-slate-700',
+                                        };
+                                    @endphp
+                                    <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold {{ $difficultyClass }}">
+                                        {{ \App\Support\QuestionDifficulty::label($q->difficulty_level) }}
+                                    </span>
+                                @endif
+                            </div>
                             <div class="text-sm text-zinc-600 dark:text-zinc-300">
                                 {{ $q->question_type === 'short_answer' ? 'Short Answer' : 'Multiple Choice' }} | {{ $q->is_active ? 'Aktif' : 'Nonaktif' }}
                             </div>

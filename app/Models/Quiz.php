@@ -18,6 +18,7 @@ class Quiz extends Model
         'shuffle_questions',
         'shuffle_options',
         'instant_feedback_enabled',
+        'difficulty_levels_enabled',
         'is_active',
         'created_by',
         'updated_by',
@@ -30,6 +31,7 @@ class Quiz extends Model
             'shuffle_questions' => 'boolean',
             'shuffle_options' => 'boolean',
             'instant_feedback_enabled' => 'boolean',
+            'difficulty_levels_enabled' => 'boolean',
             'is_active' => 'boolean',
         ];
     }
