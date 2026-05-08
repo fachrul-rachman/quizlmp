@@ -48,7 +48,10 @@ class DiscordLinkSummaryWebhookService
             return;
         }
 
-        $url = $this->webhookUrl();
+        $url = $this->webhookUrlForLink($link);
+        if ($url === '') {
+            return;
+        }
 
         $finalStatus = null;
         $finalBody = null;
@@ -85,11 +88,6 @@ class DiscordLinkSummaryWebhookService
     private function isEnabled(): bool
     {
         $enabled = env('DISCORD_WEBHOOK_ENABLED');
-        $url = $this->webhookUrl();
-
-        if ($url === '') {
-            return false;
-        }
 
         if ($enabled === null) {
             return true;
@@ -98,8 +96,13 @@ class DiscordLinkSummaryWebhookService
         return filter_var($enabled, FILTER_VALIDATE_BOOLEAN);
     }
 
-    private function webhookUrl(): string
+    private function webhookUrlForLink(object $link): string
     {
+        $userUrl = trim((string) ($link->discord_webhook_url ?? ''));
+        if ($userUrl !== '') {
+            return $userUrl;
+        }
+
         return trim((string) env('DISCORD_WEBHOOK_URL', ''));
     }
 
@@ -119,12 +122,14 @@ class DiscordLinkSummaryWebhookService
     {
         return DB::table('quiz_links')
             ->join('quizzes', 'quizzes.id', '=', 'quiz_links.quiz_id')
+            ->join('users', 'users.id', '=', 'quizzes.created_by')
             ->where('quiz_links.id', $quizLinkId)
             ->select([
                 'quiz_links.id',
                 'quiz_links.usage_type',
                 'quiz_links.expires_at',
                 'quizzes.title as quiz_title',
+                'users.discord_webhook_url',
             ])
             ->first();
     }
@@ -276,4 +281,3 @@ class DiscordLinkSummaryWebhookService
         );
     }
 }
-
