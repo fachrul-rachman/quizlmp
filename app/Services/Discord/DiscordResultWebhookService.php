@@ -196,7 +196,7 @@ class DiscordResultWebhookService
                 'color' => $this->embedColor((string) $row->grade_letter),
                 'fields' => $fields,
                 'footer' => [
-                    'text' => 'PT. NUM Assessment System',
+                    'text' => 'PT. KPUS Assessment System',
                 ],
                 'timestamp' => now()->toIso8601String(),
             ]],
