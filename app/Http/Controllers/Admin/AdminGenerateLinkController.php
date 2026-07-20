@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Division;
 use App\Models\Quiz;
 use App\Models\QuizLink;
 use Illuminate\Database\QueryException;
@@ -18,6 +19,7 @@ class AdminGenerateLinkController extends Controller
     {
         $user = $request->user();
         $isSuperAdmin = (($user?->role ?? null) === 'super_admin');
+        $user?->loadMissing('division:id,name');
 
         $activeQuizzes = Quiz::query()
             ->where('is_active', true)
@@ -29,7 +31,7 @@ class AdminGenerateLinkController extends Controller
         $generatedLinks = collect();
         if (is_array($generatedIds) && $generatedIds !== []) {
             $generatedLinks = QuizLink::query()
-                ->with('quiz:id,title')
+                ->with(['quiz:id,title', 'division:id,name'])
                 ->whereIn('id', $generatedIds)
                 ->when(! $isSuperAdmin && $user, function ($q) use ($user) {
                     $q->whereHas('quiz', fn ($quiz) => $quiz->where('created_by', (int) $user->id));
@@ -41,6 +43,9 @@ class AdminGenerateLinkController extends Controller
         return view('admin.links.generate', [
             'activeQuizzes' => $activeQuizzes,
             'generatedLinks' => $generatedLinks,
+            'divisions' => Division::query()->orderBy('name')->get(['id', 'name']),
+            'isSuperAdmin' => $isSuperAdmin,
+            'currentDivision' => $user?->division,
         ]);
     }
 
@@ -49,18 +54,25 @@ class AdminGenerateLinkController extends Controller
         $user = $request->user();
         $isSuperAdmin = (($user?->role ?? null) === 'super_admin');
 
-        $data = $request->validate([
+        $rules = [
             'quiz_id' => ['required', 'integer', 'exists:quizzes,id'],
             'count' => ['required', 'integer', 'min:1'],
             'usage_type' => ['required', 'in:single,multi'],
             'expires_in_hours' => ['exclude_if:usage_type,single', 'required_if:usage_type,multi', 'integer', 'min:1'],
-        ], [
+        ];
+
+        if ($isSuperAdmin) {
+            $rules['division_id'] = ['required', 'integer', 'exists:divisions,id'];
+        }
+
+        $data = $request->validate($rules, [
             'quiz_id.required' => 'Pilih Quiz wajib diisi.',
             'count.required' => 'Jumlah Link wajib diisi.',
             'count.min' => 'Jumlah Link harus angka positif.',
             'usage_type.required' => 'Tipe Link wajib dipilih.',
             'expires_in_hours.required_if' => 'Expired (jam) wajib diisi untuk link multi-use.',
             'expires_in_hours.min' => 'Expired (jam) harus angka positif.',
+            'division_id.required' => 'Divisi wajib dipilih.',
         ]);
 
         $quiz = Quiz::query()->findOrFail((int) $data['quiz_id']);
@@ -76,14 +88,23 @@ class AdminGenerateLinkController extends Controller
         $count = (int) $data['count'];
         $usageType = (string) $data['usage_type'];
         $expiresInHours = isset($data['expires_in_hours']) ? (int) $data['expires_in_hours'] : null;
+        $divisionId = $isSuperAdmin
+            ? (int) $data['division_id']
+            : (int) ($user?->division_id ?? 0);
+
+        if ($divisionId <= 0) {
+            return back()
+                ->withInput()
+                ->withErrors(['division_id' => 'Akun admin belum memiliki divisi. Hubungi superadmin.']);
+        }
 
         $generatedIds = [];
 
-        DB::transaction(function () use ($quiz, $count, $usageType, $expiresInHours, &$generatedIds): void {
+        DB::transaction(function () use ($quiz, $count, $usageType, $expiresInHours, $divisionId, &$generatedIds): void {
             $userId = (int) auth()->id();
 
             for ($i = 0; $i < $count; $i++) {
-                $generatedIds[] = $this->createUniqueLink($quiz->id, $userId, $usageType, $expiresInHours)->id;
+                $generatedIds[] = $this->createUniqueLink($quiz->id, $divisionId, $userId, $usageType, $expiresInHours)->id;
             }
         });
 
@@ -93,7 +114,7 @@ class AdminGenerateLinkController extends Controller
         return redirect()->to('/admin/generate-link');
     }
 
-    private function createUniqueLink(int $quizId, int $userId, string $usageType, ?int $expiresInHours): QuizLink
+    private function createUniqueLink(int $quizId, int $divisionId, int $userId, string $usageType, ?int $expiresInHours): QuizLink
     {
         $expiresAt = null;
         if ($usageType === 'multi' && is_int($expiresInHours) && $expiresInHours > 0) {
@@ -104,6 +125,7 @@ class AdminGenerateLinkController extends Controller
             try {
                 return QuizLink::create([
                     'quiz_id' => $quizId,
+                    'division_id' => $divisionId,
                     'token' => Str::random(40),
                     'usage_type' => $usageType,
                     'status' => 'unused',

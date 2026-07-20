@@ -12,6 +12,7 @@ class QuizAttempt extends Model
     protected $fillable = [
         'quiz_link_id',
         'quiz_id',
+        'division_id',
         'participant_name',
         'participant_applied_for',
         'started_at',
@@ -37,6 +38,11 @@ class QuizAttempt extends Model
     public function quiz(): BelongsTo
     {
         return $this->belongsTo(Quiz::class);
+    }
+
+    public function division(): BelongsTo
+    {
+        return $this->belongsTo(Division::class);
     }
 
     public function answers(): HasMany

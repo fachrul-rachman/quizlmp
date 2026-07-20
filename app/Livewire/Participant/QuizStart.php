@@ -4,6 +4,7 @@ namespace App\Livewire\Participant;
 
 use App\Models\QuizAttempt;
 use App\Models\QuizLink;
+use App\Support\DivisionContext;
 use App\Support\ParticipantAppliedForNormalizer;
 use Carbon\CarbonImmutable;
 use Illuminate\Validation\ValidationException;
@@ -20,6 +21,9 @@ class QuizStart extends Component
     public int $durationMinutes = 0;
     public bool $instantFeedbackEnabled = false;
     public string $finalMessage = '';
+    public string $divisionName = '';
+    public string $participantAppliedForLabel = 'Jabatan/Peringkat';
+    public string $participantIntroTitle = 'Sebelum mulai';
 
     public string $participantName = '';
     public string $participantAppliedFor = '';
@@ -29,7 +33,7 @@ class QuizStart extends Component
         $this->token = $token;
 
         $link = QuizLink::query()
-            ->with(['quiz:id,title,duration_minutes,is_active,instant_feedback_enabled', 'attempt'])
+            ->with(['quiz:id,title,duration_minutes,is_active,instant_feedback_enabled', 'division:id,code,name', 'attempt'])
             ->where('token', $token)
             ->first();
 
@@ -60,6 +64,7 @@ class QuizStart extends Component
         $this->title = (string) $link->quiz->title;
         $this->durationMinutes = (int) $link->quiz->duration_minutes;
         $this->instantFeedbackEnabled = (bool) $link->quiz->instant_feedback_enabled;
+        $this->applyDivisionContext($link);
 
         if ($link->usage_type === 'multi') {
             if ($this->isMultiUseExpired($link)) {
@@ -137,6 +142,7 @@ class QuizStart extends Component
                 $attempt = QuizAttempt::create([
                     'quiz_link_id' => $link->id,
                     'quiz_id' => $link->quiz_id,
+                    'division_id' => $link->division_id,
                     'participant_name' => $this->participantName,
                     'participant_applied_for' => $this->participantAppliedFor,
                     'started_at' => null,
@@ -147,6 +153,7 @@ class QuizStart extends Component
                 $this->setAttemptSession($link, (int) $attempt->id);
             } else {
                 $attempt->update([
+                    'division_id' => $link->division_id,
                     'participant_name' => $this->participantName,
                     'participant_applied_for' => $this->participantAppliedFor,
                 ]);
@@ -156,6 +163,7 @@ class QuizStart extends Component
                 ['quiz_link_id' => $link->id],
                 [
                     'quiz_id' => $link->quiz_id,
+                    'division_id' => $link->division_id,
                     'participant_name' => $this->participantName,
                     'participant_applied_for' => $this->participantAppliedFor,
                     'started_at' => null,
@@ -201,6 +209,7 @@ class QuizStart extends Component
                 $attempt = QuizAttempt::create([
                     'quiz_link_id' => $link->id,
                     'quiz_id' => $link->quiz_id,
+                    'division_id' => $link->division_id,
                     'participant_name' => $this->participantName,
                     'participant_applied_for' => $this->participantAppliedFor,
                     'started_at' => $now,
@@ -215,6 +224,7 @@ class QuizStart extends Component
                 }
 
                 $attempt->update([
+                    'division_id' => $link->division_id,
                     'participant_name' => $this->participantName,
                     'participant_applied_for' => $this->participantAppliedFor,
                     'started_at' => $now,
@@ -236,6 +246,7 @@ class QuizStart extends Component
                 $attempt = QuizAttempt::create([
                     'quiz_link_id' => $link->id,
                     'quiz_id' => $link->quiz_id,
+                    'division_id' => $link->division_id,
                     'participant_name' => $this->participantName,
                     'participant_applied_for' => $this->participantAppliedFor,
                     'started_at' => $now,
@@ -245,6 +256,7 @@ class QuizStart extends Component
                 ]);
             } else {
                 $attempt->update([
+                    'division_id' => $link->division_id,
                     'participant_name' => $this->participantName,
                     'participant_applied_for' => $this->participantAppliedFor,
                     'started_at' => $now,
@@ -264,7 +276,7 @@ class QuizStart extends Component
     private function getLinkOrFail(): QuizLink
     {
         $link = QuizLink::query()
-            ->with(['quiz:id,title,duration_minutes,is_active,instant_feedback_enabled', 'attempt'])
+            ->with(['quiz:id,title,duration_minutes,is_active,instant_feedback_enabled', 'division:id,code,name', 'attempt'])
             ->where('token', $this->token)
             ->first();
 
@@ -291,6 +303,15 @@ class QuizStart extends Component
         }
 
         return $link;
+    }
+
+    private function applyDivisionContext(QuizLink $link): void
+    {
+        $context = DivisionContext::from($link->division);
+
+        $this->divisionName = $context->name;
+        $this->participantAppliedForLabel = $context->participantAppliedForLabel;
+        $this->participantIntroTitle = $context->participantIntroTitle;
     }
 
     private function isMultiUseExpired(QuizLink $link): bool

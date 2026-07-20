@@ -20,7 +20,7 @@ class AdminQuizLinkController extends Controller
         $status = (string) $request->query('status', 'all');
 
         $query = QuizLink::query()
-            ->with('quiz:id,title')
+            ->with(['quiz:id,title', 'division:id,name'])
             ->withCount('attempts')
             ->when(! $isSuperAdmin && $user, function ($q) use ($user) {
                 $q->whereHas('quiz', fn ($quiz) => $quiz->where('created_by', (int) $user->id));
@@ -70,6 +70,7 @@ class AdminQuizLinkController extends Controller
         $quizLink->load([
             'quiz:id,title',
             'creator:id,name',
+            'division:id,name',
             'attempt',
             'attempts' => function ($query) {
                 $query

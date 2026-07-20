@@ -38,11 +38,26 @@
     </div>
     <div>
         <label class="block text-sm font-medium mb-1">Role</label>
-        <select name="role" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950">
+        <select id="roleInput" name="role" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950">
             <option value="admin" @selected(old('role', $managedUser?->role) === 'admin')>admin</option>
             <option value="super_admin" @selected(old('role', $managedUser?->role) === 'super_admin')>super_admin</option>
         </select>
         @error('role')
+            <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+        @enderror
+    </div>
+    <div id="divisionInputWrap">
+        <label class="block text-sm font-medium mb-1">Divisi</label>
+        <select id="divisionInput" name="division_id" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950">
+            <option value="">-- Pilih Divisi --</option>
+            @foreach ($divisions as $division)
+                <option value="{{ $division->id }}" @selected((string) old('division_id', $managedUser?->division_id) === (string) $division->id)>
+                    {{ $division->name }}
+                </option>
+            @endforeach
+        </select>
+        <div class="mt-1 text-xs text-zinc-500">Superadmin tidak terikat pada satu divisi.</div>
+        @error('division_id')
             <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
         @enderror
     </div>
@@ -54,6 +69,28 @@
         @enderror
     </div>
 </div>
+
+<script>
+    (() => {
+        const roleInput = document.getElementById('roleInput');
+        const divisionInput = document.getElementById('divisionInput');
+        const divisionInputWrap = document.getElementById('divisionInputWrap');
+
+        function syncDivisionInput() {
+            const isAdmin = roleInput?.value === 'admin';
+            if (divisionInput) {
+                divisionInput.disabled = !isAdmin;
+                divisionInput.required = isAdmin;
+            }
+            if (divisionInputWrap) {
+                divisionInputWrap.style.opacity = isAdmin ? '1' : '0.6';
+            }
+        }
+
+        roleInput?.addEventListener('change', syncDivisionInput);
+        syncDivisionInput();
+    })();
+</script>
 
 <label class="mt-4 inline-flex items-center gap-2 text-sm">
     <input type="hidden" name="is_active" value="0" />

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Division;
 use App\Models\User;
 use App\Rules\DiscordWebhookUrlsRule;
 use Illuminate\Contracts\View\View;
@@ -19,6 +20,7 @@ class AdminUserController extends Controller
         $status = (string) $request->query('status', 'all');
 
         $users = User::query()
+            ->with('division:id,name')
             ->when($search !== '', function ($query) use ($search) {
                 $needle = mb_strtolower($search);
 
@@ -44,7 +46,9 @@ class AdminUserController extends Controller
 
     public function create(): View
     {
-        return view('admin.users.create');
+        return view('admin.users.create', [
+            'divisions' => Division::query()->orderBy('name')->get(['id', 'name']),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -54,6 +58,13 @@ class AdminUserController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class, 'email')],
             'password' => ['required', 'string', 'min:8'],
             'role' => ['required', Rule::in(['super_admin', 'admin'])],
+            'division_id' => [
+                Rule::excludeIf(fn () => $request->input('role') === 'super_admin'),
+                Rule::requiredIf(fn () => $request->input('role') === 'admin'),
+                'nullable',
+                'integer',
+                Rule::exists(Division::class, 'id'),
+            ],
             'is_active' => ['nullable', 'boolean'],
             'discord_webhook_url' => ['nullable', 'string', 'max:2048', new DiscordWebhookUrlsRule()],
         ]);
@@ -63,6 +74,7 @@ class AdminUserController extends Controller
             'email' => $data['email'],
             'password' => $data['password'],
             'role' => $data['role'],
+            'division_id' => $data['role'] === 'admin' ? $data['division_id'] : null,
             'is_active' => $request->boolean('is_active', true),
             'discord_webhook_url' => $data['discord_webhook_url'] ?? null,
         ]);
@@ -76,6 +88,7 @@ class AdminUserController extends Controller
     {
         return view('admin.users.edit', [
             'managedUser' => $user,
+            'divisions' => Division::query()->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -86,6 +99,13 @@ class AdminUserController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class, 'email')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8'],
             'role' => ['required', Rule::in(['super_admin', 'admin'])],
+            'division_id' => [
+                Rule::excludeIf(fn () => $request->input('role') === 'super_admin'),
+                Rule::requiredIf(fn () => $request->input('role') === 'admin'),
+                'nullable',
+                'integer',
+                Rule::exists(Division::class, 'id'),
+            ],
             'is_active' => ['nullable', 'boolean'],
             'discord_webhook_url' => ['nullable', 'string', 'max:2048', new DiscordWebhookUrlsRule()],
         ]);
@@ -116,6 +136,7 @@ class AdminUserController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'role' => $newRole,
+            'division_id' => $newRole === 'admin' ? $data['division_id'] : null,
             'is_active' => $newIsActive,
             'discord_webhook_url' => $data['discord_webhook_url'] ?? null,
         ];

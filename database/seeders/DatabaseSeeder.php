@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Division;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -14,6 +15,15 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        Division::query()->updateOrCreate(
+            ['code' => Division::HR],
+            ['name' => 'Human Resources'],
+        );
+        Division::query()->updateOrCreate(
+            ['code' => Division::BUSINESS_DEVELOPMENT],
+            ['name' => 'Business Development'],
+        );
+
         $users = [
             [
                 'email' => 'superadmin@lestari.com',
@@ -29,6 +39,7 @@ class DatabaseSeeder extends Seeder
                     'name' => $u['name'],
                     'password' => Hash::make('password'),
                     'role' => $u['role'],
+                    'division_id' => null,
                     'is_active' => true,
                 ]
             );

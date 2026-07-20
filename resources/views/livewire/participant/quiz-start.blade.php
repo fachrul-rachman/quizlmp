@@ -18,11 +18,16 @@
         <div class="mb-4">
             <div class="text-sm text-zinc-500 dark:text-zinc-400">Nama Quiz</div>
             <div class="mt-1 text-lg font-semibold">{{ $title }}</div>
+            @if ($divisionName !== '')
+                <div class="mt-2 inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-semibold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
+                    {{ $divisionName }}
+                </div>
+            @endif
             <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">Durasi: {{ $durationMinutes }} menit</div>
         </div>
 
         <div class="mb-4 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/20 dark:text-blue-100">
-            <div class="font-semibold">Sebelum mulai</div>
+            <div class="font-semibold">{{ $participantIntroTitle }}</div>
             <ul class="mt-2 space-y-1.5 text-sm">
                 <li class="flex gap-2">
                     <span class="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-blue-900">✓</span>
@@ -56,7 +61,7 @@
                 @enderror
             </div>
             <div>
-                <label class="block text-sm font-medium mb-1">Jabatan/Peringkat</label>
+                <label class="block text-sm font-medium mb-1">{{ $participantAppliedForLabel }}</label>
                 <input wire:model.defer="participantAppliedFor" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
                 @error('participantAppliedFor')
                     <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>

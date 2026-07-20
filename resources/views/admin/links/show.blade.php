@@ -49,6 +49,10 @@
                 <div class="mt-1 font-semibold">{{ $link->usage_type === 'multi' ? 'Multi-use' : 'Single-use' }}</div>
             </div>
             <div>
+                <div class="text-sm text-zinc-500 dark:text-zinc-400">Divisi</div>
+                <div class="mt-1 font-semibold">{{ $link->division?->name ?? 'Belum ditentukan' }}</div>
+            </div>
+            <div>
                 <div class="text-sm text-zinc-500 dark:text-zinc-400">Status</div>
                 <div class="mt-1">
                     <span class="{{ $linkStatusClass((string) $link->status) }}">

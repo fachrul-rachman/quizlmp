@@ -80,6 +80,7 @@
                     <thead class="bg-zinc-50 text-zinc-600 dark:bg-zinc-900/40 dark:text-zinc-300">
                         <tr>
                             <th class="px-4 py-2 text-left font-medium">Nama Quiz</th>
+                            <th class="px-4 py-2 text-left font-medium">Divisi</th>
                             <th class="px-4 py-2 text-left font-medium">Tipe</th>
                             <th class="px-4 py-2 text-left font-medium">Expired</th>
                             <th class="px-4 py-2 text-left font-medium">Drive Folder</th>
@@ -102,6 +103,9 @@
                             <tr class="hover:bg-slate-50">
                                 <td class="px-4 py-3 align-top">
                                     <div class="font-semibold">{{ $link->quiz?->title ?? '-' }}</div>
+                                </td>
+                                <td class="px-4 py-3 align-top">
+                                    {{ $link->division?->name ?? 'Belum ditentukan' }}
                                 </td>
                                 <td class="px-4 py-3 align-top">
                                     <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">

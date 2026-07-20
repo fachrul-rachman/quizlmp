@@ -60,6 +60,7 @@
                             <th class="px-4 py-2 text-left font-medium">Nama</th>
                             <th class="px-4 py-2 text-left font-medium">Email</th>
                             <th class="px-4 py-2 text-left font-medium">Role</th>
+                            <th class="px-4 py-2 text-left font-medium">Divisi</th>
                             <th class="px-4 py-2 text-left font-medium">Status</th>
                             <th class="px-4 py-2 text-left font-medium">Dibuat</th>
                             <th class="px-4 py-2 text-left font-medium">Aksi</th>
@@ -78,6 +79,9 @@
                                     <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
                                         {{ $user->role }}
                                     </span>
+                                </td>
+                                <td class="px-4 py-3 align-top">
+                                    {{ $user->division?->name ?? 'Semua divisi' }}
                                 </td>
                                 <td class="px-4 py-3 align-top">
                                     <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold {{ $user->is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-slate-100 text-slate-700' }}">

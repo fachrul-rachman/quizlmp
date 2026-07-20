@@ -11,6 +11,7 @@ class QuizLink extends Model
 {
     protected $fillable = [
         'quiz_id',
+        'division_id',
         'token',
         'usage_type',
         'status',
@@ -38,6 +39,11 @@ class QuizLink extends Model
     public function quiz(): BelongsTo
     {
         return $this->belongsTo(Quiz::class);
+    }
+
+    public function division(): BelongsTo
+    {
+        return $this->belongsTo(Division::class);
     }
 
     public function creator(): BelongsTo

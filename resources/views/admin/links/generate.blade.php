@@ -63,6 +63,27 @@
             </div>
         </div>
 
+        <div class="mt-4">
+            <label class="block text-sm font-medium mb-1">Divisi</label>
+            @if ($isSuperAdmin)
+                <select name="division_id" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" required>
+                    <option value="">-- Pilih Divisi --</option>
+                    @foreach ($divisions as $division)
+                        <option value="{{ $division->id }}" @selected((string) old('division_id') === (string) $division->id)>
+                            {{ $division->name }}
+                        </option>
+                    @endforeach
+                </select>
+            @else
+                <div class="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+                    {{ $currentDivision?->name ?? 'Belum ditentukan' }}
+                </div>
+            @endif
+            @error('division_id')
+                <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+            @enderror
+        </div>
+
         <div class="mt-4 flex items-center gap-2">
             <button type="submit" class="rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
                 Generate Link
@@ -89,6 +110,7 @@
                             <th class="px-4 py-2 text-left font-medium"></th>
                             <th class="px-4 py-2 text-left font-medium">No</th>
                             <th class="px-4 py-2 text-left font-medium">Nama Quiz</th>
+                            <th class="px-4 py-2 text-left font-medium">Divisi</th>
                             <th class="px-4 py-2 text-left font-medium">Tipe</th>
                             <th class="px-4 py-2 text-left font-medium">Expired</th>
                             <th class="px-4 py-2 text-left font-medium">Drive Folder</th>
@@ -111,6 +133,7 @@
                                 </td>
                                 <td class="px-4 py-2">{{ $idx + 1 }}</td>
                                 <td class="px-4 py-2">{{ $link->quiz?->title ?? '-' }}</td>
+                                <td class="px-4 py-2">{{ $link->division?->name ?? '-' }}</td>
                                 <td class="px-4 py-2">{{ $link->usage_type === 'multi' ? 'Multi-use' : 'Single-use' }}</td>
                                 <td class="px-4 py-2">
                                     {{ optional($link->expires_at)->format('d M Y H:i') ?: '-' }}
