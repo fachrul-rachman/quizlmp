@@ -42,7 +42,9 @@ class ResultPdfService
             return;
         }
 
-        $attempt = QuizAttempt::query()->find($result->quiz_attempt_id);
+        $attempt = QuizAttempt::query()
+            ->with('division:id,code')
+            ->find($result->quiz_attempt_id);
         $quiz = Quiz::query()->find($result->quiz_id);
 
         if (! $attempt || ! $quiz) {

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Participant;
 
+use App\Models\Division;
 use App\Models\QuizAttempt;
 use App\Models\QuizLink;
 use App\Support\DivisionContext;
@@ -24,9 +25,16 @@ class QuizStart extends Component
     public string $divisionName = '';
     public string $participantAppliedForLabel = 'Jabatan/Peringkat';
     public string $participantIntroTitle = 'Sebelum mulai';
+    public bool $isHrDivision = false;
 
     public string $participantName = '';
     public string $participantAppliedFor = '';
+    public string $participantAge = '';
+    public string $participantHeightCm = '';
+    public string $participantWeightKg = '';
+    public string $participantLastJob = '';
+    public string $participantLastCompany = '';
+    public string $participantCurrentDomicile = '';
 
     public function mount(string $token): void
     {
@@ -81,8 +89,7 @@ class QuizStart extends Component
 
             $attempt = $this->getAttemptFromSession($link);
             if ($attempt) {
-                $this->participantName = (string) $attempt->participant_name;
-                $this->participantAppliedFor = (string) $attempt->participant_applied_for;
+                $this->hydrateParticipantIdentity($attempt);
 
                 if ($attempt->status === 'in_progress') {
                     $this->redirect('/quiz/'.$token.'/work', navigate: false);
@@ -95,8 +102,7 @@ class QuizStart extends Component
             }
         } else {
             if ($link->attempt) {
-                $this->participantName = (string) $link->attempt->participant_name;
-                $this->participantAppliedFor = (string) $link->attempt->participant_applied_for;
+                $this->hydrateParticipantIdentity($link->attempt);
 
                 if ($link->attempt->status === 'in_progress') {
                     $this->redirect('/quiz/'.$token.'/work', navigate: false);
@@ -127,24 +133,21 @@ class QuizStart extends Component
             ]);
         }
 
-        $this->validate([
-            'participantName' => ['required', 'string', 'max:255'],
-            'participantAppliedFor' => ['required', 'string', 'max:255'],
-        ], [], [
-            'participantName' => 'Nama Peserta',
-            'participantAppliedFor' => 'Jabatan',
-        ]);
+        $this->validate(
+            $this->identityRules($link),
+            [],
+            $this->identityAttributes(),
+        );
 
         $this->participantAppliedFor = ParticipantAppliedForNormalizer::normalize($this->participantAppliedFor);
+        $identity = $this->identityPayload($link);
 
         if ($link->usage_type === 'multi') {
             if (! $attempt) {
                 $attempt = QuizAttempt::create([
                     'quiz_link_id' => $link->id,
                     'quiz_id' => $link->quiz_id,
-                    'division_id' => $link->division_id,
-                    'participant_name' => $this->participantName,
-                    'participant_applied_for' => $this->participantAppliedFor,
+                    ...$identity,
                     'started_at' => null,
                     'submitted_at' => null,
                     'time_limit_minutes' => (int) $link->quiz->duration_minutes,
@@ -152,20 +155,14 @@ class QuizStart extends Component
                 ]);
                 $this->setAttemptSession($link, (int) $attempt->id);
             } else {
-                $attempt->update([
-                    'division_id' => $link->division_id,
-                    'participant_name' => $this->participantName,
-                    'participant_applied_for' => $this->participantAppliedFor,
-                ]);
+                $attempt->update($identity);
             }
         } else {
             QuizAttempt::updateOrCreate(
                 ['quiz_link_id' => $link->id],
                 [
                     'quiz_id' => $link->quiz_id,
-                    'division_id' => $link->division_id,
-                    'participant_name' => $this->participantName,
-                    'participant_applied_for' => $this->participantAppliedFor,
+                    ...$identity,
                     'started_at' => null,
                     'submitted_at' => null,
                     'time_limit_minutes' => (int) $link->quiz->duration_minutes,
@@ -185,15 +182,14 @@ class QuizStart extends Component
             return;
         }
 
-        $this->validate([
-            'participantName' => ['required', 'string', 'max:255'],
-            'participantAppliedFor' => ['required', 'string', 'max:255'],
-        ], [], [
-            'participantName' => 'Nama Peserta',
-            'participantAppliedFor' => 'Jabatan',
-        ]);
+        $this->validate(
+            $this->identityRules($link),
+            [],
+            $this->identityAttributes(),
+        );
 
         $this->participantAppliedFor = ParticipantAppliedForNormalizer::normalize($this->participantAppliedFor);
+        $identity = $this->identityPayload($link);
 
         if ($link->usage_type === 'multi' && $this->isMultiUseExpired($link)) {
             $this->state = 'final';
@@ -209,9 +205,7 @@ class QuizStart extends Component
                 $attempt = QuizAttempt::create([
                     'quiz_link_id' => $link->id,
                     'quiz_id' => $link->quiz_id,
-                    'division_id' => $link->division_id,
-                    'participant_name' => $this->participantName,
-                    'participant_applied_for' => $this->participantAppliedFor,
+                    ...$identity,
                     'started_at' => $now,
                     'submitted_at' => null,
                     'time_limit_minutes' => (int) $link->quiz->duration_minutes,
@@ -224,9 +218,7 @@ class QuizStart extends Component
                 }
 
                 $attempt->update([
-                    'division_id' => $link->division_id,
-                    'participant_name' => $this->participantName,
-                    'participant_applied_for' => $this->participantAppliedFor,
+                    ...$identity,
                     'started_at' => $now,
                     'status' => 'in_progress',
                 ]);
@@ -246,9 +238,7 @@ class QuizStart extends Component
                 $attempt = QuizAttempt::create([
                     'quiz_link_id' => $link->id,
                     'quiz_id' => $link->quiz_id,
-                    'division_id' => $link->division_id,
-                    'participant_name' => $this->participantName,
-                    'participant_applied_for' => $this->participantAppliedFor,
+                    ...$identity,
                     'started_at' => $now,
                     'submitted_at' => null,
                     'time_limit_minutes' => (int) $link->quiz->duration_minutes,
@@ -256,9 +246,7 @@ class QuizStart extends Component
                 ]);
             } else {
                 $attempt->update([
-                    'division_id' => $link->division_id,
-                    'participant_name' => $this->participantName,
-                    'participant_applied_for' => $this->participantAppliedFor,
+                    ...$identity,
                     'started_at' => $now,
                     'status' => 'in_progress',
                 ]);
@@ -312,6 +300,96 @@ class QuizStart extends Component
         $this->divisionName = $context->name;
         $this->participantAppliedForLabel = $context->participantAppliedForLabel;
         $this->participantIntroTitle = $context->participantIntroTitle;
+        $this->isHrDivision = $context->code === Division::HR;
+    }
+
+    /**
+     * @return array<string, array<int, string>>
+     */
+    private function identityRules(QuizLink $link): array
+    {
+        $rules = [
+            'participantName' => ['required', 'string', 'max:255'],
+            'participantAppliedFor' => ['required', 'string', 'max:255'],
+        ];
+
+        if ($this->isHrLink($link)) {
+            $rules += [
+                'participantAge' => ['required', 'integer', 'min:15', 'max:100'],
+                'participantHeightCm' => ['required', 'numeric', 'min:50', 'max:250'],
+                'participantWeightKg' => ['required', 'numeric', 'min:20', 'max:300'],
+                'participantLastJob' => ['required', 'string', 'max:255'],
+                'participantLastCompany' => ['required', 'string', 'max:255'],
+                'participantCurrentDomicile' => ['required', 'string', 'max:255'],
+            ];
+        }
+
+        return $rules;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function identityAttributes(): array
+    {
+        return [
+            'participantName' => 'Nama Peserta',
+            'participantAppliedFor' => 'Jabatan',
+            'participantAge' => 'Usia',
+            'participantHeightCm' => 'Tinggi Badan',
+            'participantWeightKg' => 'Berat Badan',
+            'participantLastJob' => 'Pekerjaan Terakhir',
+            'participantLastCompany' => 'Perusahaan Terakhir',
+            'participantCurrentDomicile' => 'Domisili Sekarang',
+        ];
+    }
+
+    /**
+     * @return array<string, int|float|string|null>
+     */
+    private function identityPayload(QuizLink $link): array
+    {
+        $payload = [
+            'division_id' => $link->division_id,
+            'participant_name' => trim($this->participantName),
+            'participant_applied_for' => $this->participantAppliedFor,
+            'participant_age' => null,
+            'participant_height_cm' => null,
+            'participant_weight_kg' => null,
+            'participant_last_job' => null,
+            'participant_last_company' => null,
+            'participant_current_domicile' => null,
+        ];
+
+        if (! $this->isHrLink($link)) {
+            return $payload;
+        }
+
+        return array_merge($payload, [
+            'participant_age' => (int) $this->participantAge,
+            'participant_height_cm' => (float) $this->participantHeightCm,
+            'participant_weight_kg' => (float) $this->participantWeightKg,
+            'participant_last_job' => trim($this->participantLastJob),
+            'participant_last_company' => trim($this->participantLastCompany),
+            'participant_current_domicile' => trim($this->participantCurrentDomicile),
+        ]);
+    }
+
+    private function hydrateParticipantIdentity(QuizAttempt $attempt): void
+    {
+        $this->participantName = (string) $attempt->participant_name;
+        $this->participantAppliedFor = (string) $attempt->participant_applied_for;
+        $this->participantAge = $attempt->participant_age !== null ? (string) $attempt->participant_age : '';
+        $this->participantHeightCm = $attempt->participant_height_cm !== null ? (string) $attempt->participant_height_cm : '';
+        $this->participantWeightKg = $attempt->participant_weight_kg !== null ? (string) $attempt->participant_weight_kg : '';
+        $this->participantLastJob = (string) ($attempt->participant_last_job ?? '');
+        $this->participantLastCompany = (string) ($attempt->participant_last_company ?? '');
+        $this->participantCurrentDomicile = (string) ($attempt->participant_current_domicile ?? '');
+    }
+
+    private function isHrLink(QuizLink $link): bool
+    {
+        return $link->division?->code === Division::HR;
     }
 
     private function isMultiUseExpired(QuizLink $link): bool

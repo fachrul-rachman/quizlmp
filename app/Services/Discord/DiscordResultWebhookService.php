@@ -2,6 +2,7 @@
 
 namespace App\Services\Discord;
 
+use App\Models\Division;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -96,12 +97,20 @@ class DiscordResultWebhookService
             ->join('quiz_attempts', 'quiz_attempts.id', '=', 'quiz_results.quiz_attempt_id')
             ->join('quizzes', 'quizzes.id', '=', 'quiz_results.quiz_id')
             ->join('users', 'users.id', '=', 'quizzes.created_by')
+            ->leftJoin('divisions', 'divisions.id', '=', 'quiz_attempts.division_id')
             ->leftJoin('result_pdfs', 'result_pdfs.quiz_result_id', '=', 'quiz_results.id')
             ->where('quiz_results.id', $quizResultId)
             ->select([
                 'quizzes.title as quiz_title',
                 'quiz_attempts.participant_name',
                 'quiz_attempts.participant_applied_for',
+                'quiz_attempts.participant_age',
+                'quiz_attempts.participant_height_cm',
+                'quiz_attempts.participant_weight_kg',
+                'quiz_attempts.participant_last_job',
+                'quiz_attempts.participant_last_company',
+                'quiz_attempts.participant_current_domicile',
+                'divisions.code as division_code',
                 'users.discord_webhook_url',
                 'quiz_results.correct_answers',
                 'quiz_results.total_questions',
@@ -185,6 +194,33 @@ class DiscordResultWebhookService
             ],
         ];
 
+        if ((string) ($row->division_code ?? '') === Division::HR) {
+            array_splice($fields, 2, 0, [[
+                'name' => 'Usia',
+                'value' => $row->participant_age !== null
+                    ? (int) $row->participant_age.' tahun'
+                    : '-',
+                'inline' => true,
+            ], [
+                'name' => 'Tinggi / Berat Badan',
+                'value' => $this->formatMeasurement($row->participant_height_cm, 'cm')
+                    .' / '.$this->formatMeasurement($row->participant_weight_kg, 'kg'),
+                'inline' => true,
+            ], [
+                'name' => 'Pekerjaan Terakhir',
+                'value' => (string) ($row->participant_last_job ?: '-'),
+                'inline' => true,
+            ], [
+                'name' => 'Perusahaan Terakhir',
+                'value' => (string) ($row->participant_last_company ?: '-'),
+                'inline' => true,
+            ], [
+                'name' => 'Domisili Sekarang',
+                'value' => (string) ($row->participant_current_domicile ?: '-'),
+                'inline' => true,
+            ]]);
+        }
+
         if (is_string($row->google_drive_url) && $row->google_drive_url !== '') {
             $fields[] = [
                 'name' => 'File Hasil',
@@ -205,6 +241,15 @@ class DiscordResultWebhookService
                 'timestamp' => now()->toIso8601String(),
             ]],
         ];
+    }
+
+    private function formatMeasurement(mixed $value, string $unit): string
+    {
+        if ($value === null || $value === '') {
+            return '-';
+        }
+
+        return number_format((float) $value, 2, '.', '').' '.$unit;
     }
 
     private function embedColor(string $gradeLetter): int

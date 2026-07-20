@@ -3,6 +3,7 @@
     $wrong = (int) $result->wrong_answers;
     $total = (int) $result->total_questions;
     $percentage = number_format((float) $result->score_percentage, 0);
+    $isHr = $attempt->division?->code === \App\Models\Division::HR;
 @endphp
 <style>
   :root {
@@ -24,6 +25,12 @@
   .rj-peserta .nama { font-size: 13px; font-weight: 700; color: #1565C0; }
   .rj-peserta .skor { font-size: 21px; font-weight: 800; color: #1565C0; text-align: right; white-space: nowrap; }
   .rj-peserta .skor span { font-size: 13px; font-weight: 400; color: var(--color-text-secondary); }
+  .rj-identity { padding: 10px 18px; border-bottom: 1px solid #E3F2FD; }
+  .rj-identity .section-title { margin-bottom: 7px; color: #1565C0; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+  .rj-identity table { width: 100%; border-collapse: collapse; }
+  .rj-identity td { width: 33.333%; padding: 4px 10px 4px 0; vertical-align: top; }
+  .rj-identity .identity-label { display: block; color: var(--color-text-secondary); font-size: 8.5px; font-weight: 700; text-transform: uppercase; }
+  .rj-identity .identity-value { display: block; margin-top: 2px; color: var(--color-text-primary); font-size: 10.5px; font-weight: 600; }
   .rj-stats { border-bottom: 1px solid #E3F2FD; }
   .rj-stats table { width: 100%; border-collapse: collapse; }
   .rj-stats td { text-align: center; padding: 13px 8px; border-right: 1px solid #E3F2FD; }
@@ -79,6 +86,41 @@
         </tr>
       </table>
     </div>
+    @if ($isHr)
+      <div class="rj-identity">
+        <div class="section-title">Data Peserta HR</div>
+        <table>
+          <tr>
+            <td>
+              <span class="identity-label">Usia</span>
+              <span class="identity-value">{{ $attempt->participant_age }} tahun</span>
+            </td>
+            <td>
+              <span class="identity-label">Tinggi Badan</span>
+              <span class="identity-value">{{ number_format((float) $attempt->participant_height_cm, 2, '.', '') }} cm</span>
+            </td>
+            <td>
+              <span class="identity-label">Berat Badan</span>
+              <span class="identity-value">{{ number_format((float) $attempt->participant_weight_kg, 2, '.', '') }} kg</span>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <span class="identity-label">Pekerjaan Terakhir</span>
+              <span class="identity-value">{{ $attempt->participant_last_job }}</span>
+            </td>
+            <td>
+              <span class="identity-label">Perusahaan Terakhir</span>
+              <span class="identity-value">{{ $attempt->participant_last_company }}</span>
+            </td>
+            <td>
+              <span class="identity-label">Domisili Sekarang</span>
+              <span class="identity-value">{{ $attempt->participant_current_domicile }}</span>
+            </td>
+          </tr>
+        </table>
+      </div>
+    @endif
     <div class="rj-stats">
       <table>
         <tr>

@@ -17,7 +17,9 @@ return [
     |
     */
     'profiles' => [
-        'hr' => [],
+        'hr' => [
+            'participant_applied_for_label' => 'Jabatan',
+        ],
         'business_development' => [],
     ],
 ];
