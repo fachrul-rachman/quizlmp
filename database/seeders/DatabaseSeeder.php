@@ -29,7 +29,7 @@ class DatabaseSeeder extends Seeder
                 'email' => 'superadmin@lestari.com',
                 'name' => 'Super Admin',
                 'role' => 'super_admin',
-            ]
+            ],
         ];
 
         foreach ($users as $u) {
@@ -41,7 +41,7 @@ class DatabaseSeeder extends Seeder
                     'role' => $u['role'],
                     'division_id' => null,
                     'is_active' => true,
-                ]
+                ],
             );
 
             if ($user->trashed()) {

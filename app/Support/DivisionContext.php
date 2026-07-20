@@ -12,8 +12,7 @@ final readonly class DivisionContext
         public string $name,
         public string $participantAppliedForLabel,
         public string $participantIntroTitle,
-    ) {
-    }
+    ) {}
 
     public static function from(?Division $division): self
     {
