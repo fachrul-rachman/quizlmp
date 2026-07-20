@@ -54,58 +54,58 @@
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-                <label class="block text-sm font-medium mb-1">Nama Peserta</label>
-                <input wire:model.defer="participantName" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
+                <label for="participantName" class="block text-sm font-medium mb-1">Nama Peserta</label>
+                <input id="participantName" wire:model.defer="participantName" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
                 @error('participantName')
                     <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
                 @enderror
             </div>
             <div>
-                <label class="block text-sm font-medium mb-1">{{ $participantAppliedForLabel }}</label>
-                <input wire:model.defer="participantAppliedFor" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
+                <label for="participantAppliedFor" class="block text-sm font-medium mb-1">{{ $participantAppliedForLabel }}</label>
+                <input id="participantAppliedFor" wire:model.defer="participantAppliedFor" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
                 @error('participantAppliedFor')
                     <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
                 @enderror
             </div>
             @if ($isHrDivision)
                 <div>
-                    <label class="block text-sm font-medium mb-1">Usia</label>
-                    <input type="number" min="15" max="100" step="1" inputmode="numeric" wire:model.defer="participantAge" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
+                    <label for="participantAge" class="block text-sm font-medium mb-1">Usia</label>
+                    <input id="participantAge" type="number" min="15" max="100" step="1" inputmode="numeric" wire:model.defer="participantAge" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
                     @error('participantAge')
                         <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
                     @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-1">Tinggi Badan (cm)</label>
-                    <input type="number" min="50" max="250" step="0.01" inputmode="decimal" wire:model.defer="participantHeightCm" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
+                    <label for="participantHeightCm" class="block text-sm font-medium mb-1">Tinggi Badan (cm)</label>
+                    <input id="participantHeightCm" type="number" min="50" max="250" step="0.01" inputmode="decimal" wire:model.defer="participantHeightCm" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
                     @error('participantHeightCm')
                         <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
                     @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-1">Berat Badan (kg)</label>
-                    <input type="number" min="20" max="300" step="0.01" inputmode="decimal" wire:model.defer="participantWeightKg" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
+                    <label for="participantWeightKg" class="block text-sm font-medium mb-1">Berat Badan (kg)</label>
+                    <input id="participantWeightKg" type="number" min="20" max="300" step="0.01" inputmode="decimal" wire:model.defer="participantWeightKg" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
                     @error('participantWeightKg')
                         <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
                     @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-1">Pekerjaan Terakhir</label>
-                    <input wire:model.defer="participantLastJob" maxlength="255" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
+                    <label for="participantLastJob" class="block text-sm font-medium mb-1">Pekerjaan Terakhir</label>
+                    <input id="participantLastJob" wire:model.defer="participantLastJob" maxlength="255" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
                     @error('participantLastJob')
                         <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
                     @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-1">Perusahaan Terakhir</label>
-                    <input wire:model.defer="participantLastCompany" maxlength="255" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
+                    <label for="participantLastCompany" class="block text-sm font-medium mb-1">Perusahaan Terakhir</label>
+                    <input id="participantLastCompany" wire:model.defer="participantLastCompany" maxlength="255" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
                     @error('participantLastCompany')
                         <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
                     @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-1">Domisili Sekarang</label>
-                    <input wire:model.defer="participantCurrentDomicile" maxlength="255" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
+                    <label for="participantCurrentDomicile" class="block text-sm font-medium mb-1">Domisili Sekarang</label>
+                    <input id="participantCurrentDomicile" wire:model.defer="participantCurrentDomicile" maxlength="255" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
                     @error('participantCurrentDomicile')
                         <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
                     @enderror

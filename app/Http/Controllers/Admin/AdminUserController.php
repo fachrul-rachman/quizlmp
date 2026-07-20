@@ -66,7 +66,7 @@ class AdminUserController extends Controller
                 Rule::exists(Division::class, 'id'),
             ],
             'is_active' => ['nullable', 'boolean'],
-            'discord_webhook_url' => ['nullable', 'string', 'max:2048', new DiscordWebhookUrlsRule()],
+            'discord_webhook_url' => ['nullable', 'string', 'max:2048', new DiscordWebhookUrlsRule],
         ]);
 
         User::create([
@@ -108,7 +108,7 @@ class AdminUserController extends Controller
                 Rule::exists(Division::class, 'id'),
             ],
             'is_active' => ['nullable', 'boolean'],
-            'discord_webhook_url' => ['nullable', 'string', 'max:2048', new DiscordWebhookUrlsRule()],
+            'discord_webhook_url' => ['nullable', 'string', 'max:2048', new DiscordWebhookUrlsRule],
         ]);
 
         $newRole = (string) $data['role'];

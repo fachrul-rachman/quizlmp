@@ -39,6 +39,7 @@ class ResultPdfService
         $existing = ResultPdf::query()->where('quiz_result_id', $result->id)->first();
         if ($existing) {
             $this->uploadToGoogleDriveIfEnabled($existing);
+
             return;
         }
 
@@ -120,6 +121,7 @@ class ResultPdfService
             }
 
             $seed = $this->seedFromAttempt((int) $attempt->id, (int) $quiz->id);
+
             return DeterministicShuffle::shuffle($ids, $seed);
         }
 
@@ -266,7 +268,7 @@ class ResultPdfService
 
     private function renderPdf(string $html): string
     {
-        $options = new Options();
+        $options = new Options;
         $options->set('isRemoteEnabled', false);
         $options->set('isHtml5ParserEnabled', true);
         $options->set('defaultFont', 'DejaVu Sans');
@@ -292,6 +294,7 @@ class ResultPdfService
 
         if (is_string($pdf->google_drive_file_id) && $pdf->google_drive_file_id !== '') {
             $this->deleteLocalPdfIfPresent($pdf);
+
             return;
         }
 
@@ -361,6 +364,7 @@ class ResultPdfService
         $name = preg_replace('/\s+/', ' ', $name) ?? $name;
         $name = trim($name);
         $name = Str::limit($name, 120, '');
+
         return $name === '' ? 'hasil' : $name;
     }
 
@@ -415,6 +419,7 @@ class ResultPdfService
     {
         $hash = hash('sha256', 'attempt:'.$attemptId.':quiz:'.$quizPk, true);
         $unpacked = unpack('N', substr($hash, 0, 4));
+
         return (int) ($unpacked[1] ?? 1);
     }
 
@@ -422,6 +427,7 @@ class ResultPdfService
     {
         $hash = hash('sha256', 'attempt:'.$attemptId.':quiz:'.$quizPk.':q:'.$questionId, true);
         $unpacked = unpack('N', substr($hash, 0, 4));
+
         return (int) ($unpacked[1] ?? 1);
     }
 
@@ -429,6 +435,7 @@ class ResultPdfService
     {
         $hash = hash('sha256', 'attempt:'.$attemptId.':quiz:'.$quizPk.':difficulty:'.$difficultyLevel, true);
         $unpacked = unpack('N', substr($hash, 0, 4));
+
         return (int) ($unpacked[1] ?? 1);
     }
 }

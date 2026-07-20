@@ -255,11 +255,11 @@ class DiscordResultWebhookService
     private function embedColor(string $gradeLetter): int
     {
         return match (strtoupper($gradeLetter)) {
-            'A' => 0x16a34a,
-            'B' => 0x2563eb,
-            'C' => 0xca8a04,
-            'D' => 0xea580c,
-            default => 0xdc2626,
+            'A' => 0x16A34A,
+            'B' => 0x2563EB,
+            'C' => 0xCA8A04,
+            'D' => 0xEA580C,
+            default => 0xDC2626,
         };
     }
 
