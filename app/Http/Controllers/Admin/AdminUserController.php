@@ -101,7 +101,8 @@ class AdminUserController extends Controller
             'role' => ['required', Rule::in(['super_admin', 'admin'])],
             'division_id' => [
                 Rule::excludeIf(fn () => $request->input('role') === 'super_admin'),
-                Rule::requiredIf(fn () => $request->input('role') === 'admin'),
+                Rule::requiredIf(fn () => $request->input('role') === 'admin'
+                    && ! ((int) $request->user()->id === (int) $user->id && $user->role === 'super_admin')),
                 'nullable',
                 'integer',
                 Rule::exists(Division::class, 'id'),
