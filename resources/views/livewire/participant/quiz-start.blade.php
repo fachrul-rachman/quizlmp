@@ -28,7 +28,13 @@
 
         <div class="mb-4 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/20 dark:text-blue-100">
             <div class="font-semibold">{{ $participantIntroTitle }}</div>
-            <ul class="mt-2 space-y-1.5 text-sm">
+            <aside aria-label="Peringatan koneksi internet" class="mt-3 rounded-md border border-rose-900 bg-rose-950 px-3 py-2.5 text-rose-50 shadow-sm">
+                <div class="text-xs font-bold uppercase tracking-wide text-rose-100">Perhatian</div>
+                <p class="mt-1 text-sm font-medium leading-5">
+                    Pastikan internet Anda stabil sebelum mengerjakan test. Test tidak dapat diulang.
+                </p>
+            </aside>
+            <ul class="mt-3 space-y-1.5 text-sm">
                 <li class="flex gap-2">
                     <span class="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-blue-900">✓</span>
                     <span>Timer mulai saat Anda menekan tombol <span class="font-semibold">Mulai Test</span>.</span>
