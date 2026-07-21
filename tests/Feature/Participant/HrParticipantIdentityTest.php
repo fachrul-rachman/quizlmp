@@ -78,6 +78,22 @@ it('rejects an invalid HR employment start month', function () {
         ->assertHasErrors(['participantLastJobStartedOn' => 'date_format']);
 });
 
+it('rejects an HR employment start month in the future', function () {
+    $link = createHrIdentityLink(Division::HR);
+
+    Livewire::test(QuizStart::class, ['token' => $link->token])
+        ->set('participantName', 'Siti')
+        ->set('participantAge', '27')
+        ->set('participantHeightCm', '163.5')
+        ->set('participantWeightKg', '54.5')
+        ->set('participantLastJob', 'Talent Acquisition')
+        ->set('participantLastCompany', 'PT Contoh Indonesia')
+        ->set('participantLastJobStartedOn', now()->addMonth()->format('Y-m'))
+        ->set('participantCurrentDomicile', 'Jakarta Selatan')
+        ->call('saveIdentity')
+        ->assertHasErrors(['participantLastJobStartedOn' => 'before_or_equal']);
+});
+
 it('does not show or require HR identity fields for Business Development links', function () {
     $link = createHrIdentityLink(Division::BUSINESS_DEVELOPMENT);
 

@@ -3,6 +3,7 @@
 namespace App\Livewire\Participant;
 
 use App\Models\AttemptAnswer;
+use App\Models\Division;
 use App\Models\Question;
 use App\Models\QuestionOption;
 use App\Models\QuizAttempt;
@@ -26,17 +27,29 @@ class QuizWork extends Component
     private const SESSION_ATTEMPT_KEY_PREFIX = 'quiz_attempt_id_for_token_';
 
     public string $state = 'loading';
+
     public string $title = '';
+
     public string $participantName = '';
+
     public string $participantAppliedFor = '';
+
+    public bool $isHrDivision = false;
+
     public int $secondsRemaining = 0;
 
     public int $linkId = 0;
+
     public int $attemptId = 0;
+
     public int $quizId = 0;
+
     public int $quizPk = 0;
+
     public bool $instantFeedbackEnabled = false;
+
     public bool $difficultyLevelsEnabled = false;
+
     public bool $shuffleOptions = false;
 
     public int $step = 1;
@@ -45,23 +58,34 @@ class QuizWork extends Component
     public array $questionIds = [];
 
     public ?int $currentQuestionId = null;
+
     public ?string $currentQuestionText = null;
+
     public ?string $currentQuestionImagePath = null;
+
     public ?string $currentQuestionType = null;
+
     public ?string $currentDifficultyLevel = null;
 
     /** @var array<int, array{id:int,label:string,text:string,image_path:?string,is_correct:bool}> */
     public array $currentOptions = [];
 
     public ?int $selectedOptionId = null;
+
     public ?int $lockedSelectedOptionId = null;
+
     public string $shortAnswerText = '';
+
     public ?bool $currentAnswerIsCorrect = null;
+
     public ?int $currentCorrectOptionId = null;
+
     public bool $currentAnswerLocked = false;
+
     public bool $pendingAutoAdvance = false;
 
     public int $answeredCount = 0;
+
     public int $totalQuestions = 0;
 
     /** @var array<int, array{question_id:int, step:int}> */
@@ -74,22 +98,25 @@ class QuizWork extends Component
         $this->token = $token;
 
         $link = QuizLink::query()
-            ->with(['quiz:id,title,is_active,shuffle_questions,shuffle_options,instant_feedback_enabled,difficulty_levels_enabled', 'attempt'])
+            ->with(['quiz:id,title,is_active,shuffle_questions,shuffle_options,instant_feedback_enabled,difficulty_levels_enabled', 'division:id,code', 'attempt'])
             ->where('token', $token)
             ->first();
 
         if (! $link) {
             $this->state = 'invalid';
+
             return;
         }
 
         if (in_array($link->status, ['submitted', 'expired'], true)) {
             $this->state = $link->status === 'submitted' ? 'submitted' : 'expired';
+
             return;
         }
 
         if (! $link->quiz || ! $link->quiz->is_active) {
             $this->state = 'unavailable';
+
             return;
         }
 
@@ -102,6 +129,7 @@ class QuizWork extends Component
             }
 
             $this->state = 'expired';
+
             return;
         }
 
@@ -111,17 +139,20 @@ class QuizWork extends Component
 
         if (! $attempt) {
             $this->redirect('/quiz/'.$token, navigate: false);
+
             return;
         }
 
         if ($attempt->status !== 'in_progress') {
             $this->redirect('/quiz/'.$token, navigate: false);
+
             return;
         }
 
         $this->title = (string) $link->quiz->title;
         $this->participantName = (string) $attempt->participant_name;
         $this->participantAppliedFor = (string) $attempt->participant_applied_for;
+        $this->isHrDivision = $link->division?->code === Division::HR;
 
         $this->linkId = (int) $link->id;
         $this->attemptId = (int) $attempt->id;
@@ -134,6 +165,7 @@ class QuizWork extends Component
         $this->secondsRemaining = $this->calculateSecondsRemaining($attempt);
         if ($this->secondsRemaining <= 0) {
             $this->finalizeAutoIfNeeded();
+
             return;
         }
 
@@ -146,6 +178,7 @@ class QuizWork extends Component
         );
         if ($this->questionIds === []) {
             $this->state = 'no_questions';
+
             return;
         }
 
@@ -153,6 +186,7 @@ class QuizWork extends Component
         if (! $this->moveToFirstUnworkedStep()) {
             $this->finalize('submitted');
             $this->redirect('/quiz/'.$this->token.'/done', navigate: false);
+
             return;
         }
         $this->loadStep($this->attemptId, $this->quizId, $this->shuffleOptions, $this->quizPk);
@@ -175,6 +209,7 @@ class QuizWork extends Component
         $attempt = QuizAttempt::query()->find($this->attemptId);
         if (! $attempt) {
             $this->state = 'invalid';
+
             return;
         }
 
@@ -194,6 +229,7 @@ class QuizWork extends Component
             $this->suppressInstantFeedbackLock = true;
             $this->selectedOptionId = (int) $this->lockedSelectedOptionId;
             $this->suppressInstantFeedbackLock = false;
+
             return;
         }
 
@@ -276,6 +312,7 @@ class QuizWork extends Component
         if ($this->instantFeedbackEnabled && $this->currentQuestionType === 'multiple_choice') {
             $this->pendingAutoAdvance = true;
             $this->dispatch('participant-quiz-auto-advance');
+
             return;
         }
 
@@ -355,6 +392,7 @@ class QuizWork extends Component
 
         if (! $isSkipped) {
             $this->refreshProgress();
+
             return;
         }
 
@@ -383,6 +421,7 @@ class QuizWork extends Component
         if (! $this->moveToFirstUnworkedStep()) {
             $this->finalize('submitted');
             $this->redirect('/quiz/'.$this->token.'/done', navigate: false);
+
             return;
         }
 
@@ -398,6 +437,7 @@ class QuizWork extends Component
         $startedAt = CarbonImmutable::parse($attempt->started_at);
         $deadline = $startedAt->addMinutes((int) $attempt->time_limit_minutes);
         $diff = $deadline->diffInSeconds(CarbonImmutable::now(), false) * -1;
+
         return max(0, (int) $diff);
     }
 
@@ -407,6 +447,7 @@ class QuizWork extends Component
         if ($this->attemptId <= 0 || $this->totalQuestions === 0) {
             $this->answeredCount = 0;
             $this->skippedQuestionButtons = [];
+
             return;
         }
 
@@ -432,11 +473,13 @@ class QuizWork extends Component
                         'step' => $stepIndex + 1,
                     ];
                 }
+
                 continue;
             }
 
             if ($a->selected_option_id) {
                 $answered++;
+
                 continue;
             }
 
@@ -453,6 +496,7 @@ class QuizWork extends Component
     {
         if ($this->attemptId <= 0 || $this->questionIds === []) {
             $this->step = 1;
+
             return true;
         }
 
@@ -468,11 +512,13 @@ class QuizWork extends Component
             $a = $answers->get($qid);
             if (! $a) {
                 $this->step = $idx + 1;
+
                 return true;
             }
 
             if ($a->skipped_at) {
                 $firstSkippedStep ??= $idx + 1;
+
                 continue;
             }
 
@@ -485,11 +531,13 @@ class QuizWork extends Component
             }
 
             $this->step = $idx + 1;
+
             return true;
         }
 
         if ($firstSkippedStep !== null) {
             $this->step = $firstSkippedStep;
+
             return true;
         }
 
@@ -505,8 +553,7 @@ class QuizWork extends Component
         bool $difficultyLevelsEnabled,
         int $attemptId,
         int $quizPk
-    ): array
-    {
+    ): array {
         $rows = DB::table('questions')
             ->where('quiz_id', $quizId)
             ->whereNull('deleted_at')
@@ -530,6 +577,7 @@ class QuizWork extends Component
             }
 
             $seed = $this->seedFromAttempt($attemptId, $quizPk);
+
             return DeterministicShuffle::shuffle($ids, $seed);
         }
 
@@ -562,6 +610,7 @@ class QuizWork extends Component
     {
         $hash = hash('sha256', 'attempt:'.$attemptId.':quiz:'.$quizPk, true);
         $unpacked = unpack('N', substr($hash, 0, 4));
+
         return (int) ($unpacked[1] ?? 1);
     }
 
@@ -569,6 +618,7 @@ class QuizWork extends Component
     {
         $hash = hash('sha256', 'attempt:'.$attemptId.':quiz:'.$quizPk.':q:'.$questionId, true);
         $unpacked = unpack('N', substr($hash, 0, 4));
+
         return (int) ($unpacked[1] ?? 1);
     }
 
@@ -576,6 +626,7 @@ class QuizWork extends Component
     {
         $hash = hash('sha256', 'attempt:'.$attemptId.':quiz:'.$quizPk.':difficulty:'.$difficultyLevel, true);
         $unpacked = unpack('N', substr($hash, 0, 4));
+
         return (int) ($unpacked[1] ?? 1);
     }
 
@@ -724,7 +775,7 @@ class QuizWork extends Component
             return;
         }
 
-        $gradeService = new GradeService();
+        $gradeService = new GradeService;
         $resultId = null;
 
         DB::transaction(function () use ($resultStatus, $gradeService, &$resultId): void {
@@ -806,6 +857,7 @@ class QuizWork extends Component
                 if (! $answer) {
                     $unanswered++;
                     $isCorrectByQuestionId[$qid] = false;
+
                     continue;
                 }
 
@@ -813,6 +865,7 @@ class QuizWork extends Component
                     if (! $answer->selected_option_id) {
                         $unanswered++;
                         $isCorrectByQuestionId[$qid] = false;
+
                         continue;
                     }
 
@@ -837,6 +890,7 @@ class QuizWork extends Component
                 if ($text === '') {
                     $unanswered++;
                     $isCorrectByQuestionId[$qid] = false;
+
                     continue;
                 }
 
@@ -1003,6 +1057,7 @@ class QuizWork extends Component
     {
         $text = mb_strtolower(trim($text));
         $text = preg_replace('/\s+/', ' ', $text) ?? $text;
+
         return $text;
     }
 

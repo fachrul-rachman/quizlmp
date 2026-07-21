@@ -60,13 +60,15 @@
                     <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
                 @enderror
             </div>
-            <div>
-                <label for="participantAppliedFor" class="block text-sm font-medium mb-1">{{ $participantAppliedForLabel }}</label>
-                <input id="participantAppliedFor" wire:model.defer="participantAppliedFor" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
-                @error('participantAppliedFor')
-                    <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
-                @enderror
-            </div>
+            @if (! $isHrDivision)
+                <div>
+                    <label for="participantAppliedFor" class="block text-sm font-medium mb-1">{{ $participantAppliedForLabel }}</label>
+                    <input id="participantAppliedFor" wire:model.defer="participantAppliedFor" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
+                    @error('participantAppliedFor')
+                        <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                    @enderror
+                </div>
+            @endif
             @if ($isHrDivision)
                 <div>
                     <label for="participantAge" class="block text-sm font-medium mb-1">Usia</label>
@@ -100,6 +102,13 @@
                     <label for="participantLastCompany" class="block text-sm font-medium mb-1">Perusahaan Terakhir</label>
                     <input id="participantLastCompany" wire:model.defer="participantLastCompany" maxlength="255" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
                     @error('participantLastCompany')
+                        <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                    @enderror
+                </div>
+                <div>
+                    <label for="participantLastJobStartedOn" class="block text-sm font-medium mb-1">Sejak Kapan Bekerja</label>
+                    <input id="participantLastJobStartedOn" type="month" max="{{ now()->format('Y-m') }}" wire:model.defer="participantLastJobStartedOn" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-950" />
+                    @error('participantLastJobStartedOn')
                         <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
                     @enderror
                 </div>

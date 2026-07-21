@@ -49,6 +49,8 @@ class QuizStart extends Component
 
     public string $participantLastCompany = '';
 
+    public string $participantLastJobStartedOn = '';
+
     public string $participantCurrentDomicile = '';
 
     public function mount(string $token): void
@@ -160,7 +162,9 @@ class QuizStart extends Component
             $this->identityAttributes(),
         );
 
-        $this->participantAppliedFor = ParticipantAppliedForNormalizer::normalize($this->participantAppliedFor);
+        $this->participantAppliedFor = $this->isHrLink($link)
+            ? ''
+            : ParticipantAppliedForNormalizer::normalize($this->participantAppliedFor);
         $identity = $this->identityPayload($link);
 
         if ($link->usage_type === 'multi') {
@@ -209,7 +213,9 @@ class QuizStart extends Component
             $this->identityAttributes(),
         );
 
-        $this->participantAppliedFor = ParticipantAppliedForNormalizer::normalize($this->participantAppliedFor);
+        $this->participantAppliedFor = $this->isHrLink($link)
+            ? ''
+            : ParticipantAppliedForNormalizer::normalize($this->participantAppliedFor);
         $identity = $this->identityPayload($link);
 
         if ($link->usage_type === 'multi' && $this->isMultiUseExpired($link)) {
@@ -332,7 +338,6 @@ class QuizStart extends Component
     {
         $rules = [
             'participantName' => ['required', 'string', 'max:255'],
-            'participantAppliedFor' => ['required', 'string', 'max:255'],
         ];
 
         if ($this->isHrLink($link)) {
@@ -342,8 +347,15 @@ class QuizStart extends Component
                 'participantWeightKg' => ['required', 'numeric', 'min:20', 'max:300'],
                 'participantLastJob' => ['required', 'string', 'max:255'],
                 'participantLastCompany' => ['required', 'string', 'max:255'],
+                'participantLastJobStartedOn' => [
+                    'required',
+                    'date_format:Y-m',
+                    'before_or_equal:'.now()->format('Y-m'),
+                ],
                 'participantCurrentDomicile' => ['required', 'string', 'max:255'],
             ];
+        } else {
+            $rules['participantAppliedFor'] = ['required', 'string', 'max:255'];
         }
 
         return $rules;
@@ -362,6 +374,7 @@ class QuizStart extends Component
             'participantWeightKg' => 'Berat Badan',
             'participantLastJob' => 'Pekerjaan Terakhir',
             'participantLastCompany' => 'Perusahaan Terakhir',
+            'participantLastJobStartedOn' => 'Sejak Kapan Bekerja',
             'participantCurrentDomicile' => 'Domisili Sekarang',
         ];
     }
@@ -380,6 +393,7 @@ class QuizStart extends Component
             'participant_weight_kg' => null,
             'participant_last_job' => null,
             'participant_last_company' => null,
+            'participant_last_job_started_on' => null,
             'participant_current_domicile' => null,
         ];
 
@@ -393,6 +407,7 @@ class QuizStart extends Component
             'participant_weight_kg' => (float) $this->participantWeightKg,
             'participant_last_job' => trim($this->participantLastJob),
             'participant_last_company' => trim($this->participantLastCompany),
+            'participant_last_job_started_on' => $this->participantLastJobStartedOn.'-01',
             'participant_current_domicile' => trim($this->participantCurrentDomicile),
         ]);
     }
@@ -406,6 +421,7 @@ class QuizStart extends Component
         $this->participantWeightKg = $attempt->participant_weight_kg !== null ? (string) $attempt->participant_weight_kg : '';
         $this->participantLastJob = (string) ($attempt->participant_last_job ?? '');
         $this->participantLastCompany = (string) ($attempt->participant_last_company ?? '');
+        $this->participantLastJobStartedOn = $attempt->participant_last_job_started_on?->format('Y-m') ?? '';
         $this->participantCurrentDomicile = (string) ($attempt->participant_current_domicile ?? '');
     }
 

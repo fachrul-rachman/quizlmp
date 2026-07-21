@@ -11,7 +11,7 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 
 it('renders HR identity data in the result PDF view', function () {
-    [$attempt, $result, $quiz] = createHrResultOutputRecords();
+    [$attempt, $result, $quiz] = createResultOutputRecords();
 
     $html = view('pdf.result', [
         'quiz' => $quiz,
@@ -34,7 +34,7 @@ it('renders HR identity data in the result PDF view', function () {
 });
 
 it('includes HR identity data in the Discord result payload', function () {
-    [, $result] = createHrResultOutputRecords();
+    [, $result] = createResultOutputRecords();
 
     Http::fake([
         'https://discord.com/api/webhooks/*' => Http::response('', 204),
@@ -63,12 +63,38 @@ it('includes HR identity data in the Discord result payload', function () {
     unset($_ENV['DISCORD_WEBHOOK_ENABLED'], $_SERVER['DISCORD_WEBHOOK_ENABLED']);
 });
 
+it('keeps the position field and excludes HR fields in Business Development Discord results', function () {
+    [, $result] = createResultOutputRecords(Division::BUSINESS_DEVELOPMENT);
+
+    Http::fake([
+        'https://discord.com/api/webhooks/*' => Http::response('', 204),
+    ]);
+
+    putenv('DISCORD_WEBHOOK_ENABLED=true');
+    $_ENV['DISCORD_WEBHOOK_ENABLED'] = 'true';
+    $_SERVER['DISCORD_WEBHOOK_ENABLED'] = 'true';
+
+    app(DiscordResultWebhookService::class)->sendForResultId($result->id);
+
+    Http::assertSent(function (Request $request): bool {
+        $fields = collect(data_get($request->data(), 'embeds.0.fields', []));
+
+        return $fields->contains(fn (array $field) => $field['name'] === 'Jabatan' && $field['value'] === 'Recruiter')
+            && $fields->doesntContain(fn (array $field) => $field['name'] === 'Sejak Kapan Bekerja')
+            && $fields->doesntContain(fn (array $field) => $field['name'] === 'Usia');
+    });
+
+    putenv('DISCORD_WEBHOOK_ENABLED');
+    unset($_ENV['DISCORD_WEBHOOK_ENABLED'], $_SERVER['DISCORD_WEBHOOK_ENABLED']);
+});
+
 /**
  * @return array{0: QuizAttempt, 1: QuizResult, 2: Quiz}
  */
-function createHrResultOutputRecords(): array
+function createResultOutputRecords(string $divisionCode = Division::HR): array
 {
-    $division = Division::query()->where('code', Division::HR)->firstOrFail();
+    $division = Division::query()->where('code', $divisionCode)->firstOrFail();
+    $isHr = $divisionCode === Division::HR;
     $admin = User::factory()->create([
         'division_id' => $division->id,
         'discord_webhook_url' => 'https://discord.com/api/webhooks/test/token',
@@ -88,7 +114,7 @@ function createHrResultOutputRecords(): array
     $link = QuizLink::query()->create([
         'quiz_id' => $quiz->id,
         'division_id' => $division->id,
-        'token' => 'hr-result-output',
+        'token' => $divisionCode.'-result-output',
         'usage_type' => 'single',
         'status' => 'submitted',
         'created_by' => $admin->id,
@@ -99,13 +125,13 @@ function createHrResultOutputRecords(): array
         'division_id' => $division->id,
         'participant_name' => 'Siti',
         'participant_applied_for' => 'Recruiter',
-        'participant_age' => 27,
-        'participant_height_cm' => 163.5,
-        'participant_weight_kg' => 54.5,
-        'participant_last_job' => 'Talent Acquisition',
-        'participant_last_company' => 'PT Contoh Indonesia',
-        'participant_last_job_started_on' => '2023-01-01',
-        'participant_current_domicile' => 'Jakarta Selatan',
+        'participant_age' => $isHr ? 27 : null,
+        'participant_height_cm' => $isHr ? 163.5 : null,
+        'participant_weight_kg' => $isHr ? 54.5 : null,
+        'participant_last_job' => $isHr ? 'Talent Acquisition' : null,
+        'participant_last_company' => $isHr ? 'PT Contoh Indonesia' : null,
+        'participant_last_job_started_on' => $isHr ? '2023-01-01' : null,
+        'participant_current_domicile' => $isHr ? 'Jakarta Selatan' : null,
         'started_at' => now()->subMinutes(10),
         'submitted_at' => now(),
         'time_limit_minutes' => 12,

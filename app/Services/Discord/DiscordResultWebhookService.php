@@ -3,6 +3,7 @@
 namespace App\Services\Discord;
 
 use App\Models\Division;
+use App\Support\ParticipantEmploymentStartMonth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -109,6 +110,7 @@ class DiscordResultWebhookService
                 'quiz_attempts.participant_weight_kg',
                 'quiz_attempts.participant_last_job',
                 'quiz_attempts.participant_last_company',
+                'quiz_attempts.participant_last_job_started_on',
                 'quiz_attempts.participant_current_domicile',
                 'divisions.code as division_code',
                 'users.discord_webhook_url',
@@ -152,11 +154,6 @@ class DiscordResultWebhookService
                 'inline' => true,
             ],
             [
-                'name' => 'Jabatan',
-                'value' => (string) $row->participant_applied_for,
-                'inline' => true,
-            ],
-            [
                 'name' => 'Nama Tes',
                 'value' => (string) $row->quiz_title,
                 'inline' => false,
@@ -194,8 +191,10 @@ class DiscordResultWebhookService
             ],
         ];
 
-        if ((string) ($row->division_code ?? '') === Division::HR) {
-            array_splice($fields, 2, 0, [[
+        $isHr = (string) ($row->division_code ?? '') === Division::HR;
+
+        if ($isHr) {
+            array_splice($fields, 1, 0, [[
                 'name' => 'Usia',
                 'value' => $row->participant_age !== null
                     ? (int) $row->participant_age.' tahun'
@@ -215,8 +214,18 @@ class DiscordResultWebhookService
                 'value' => (string) ($row->participant_last_company ?: '-'),
                 'inline' => true,
             ], [
+                'name' => 'Sejak Kapan Bekerja',
+                'value' => ParticipantEmploymentStartMonth::format($row->participant_last_job_started_on),
+                'inline' => true,
+            ], [
                 'name' => 'Domisili Sekarang',
                 'value' => (string) ($row->participant_current_domicile ?: '-'),
+                'inline' => true,
+            ]]);
+        } else {
+            array_splice($fields, 1, 0, [[
+                'name' => 'Jabatan',
+                'value' => (string) $row->participant_applied_for,
                 'inline' => true,
             ]]);
         }

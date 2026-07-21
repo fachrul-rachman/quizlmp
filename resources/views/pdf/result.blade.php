@@ -80,7 +80,9 @@
         <tr>
           <td>
             <span class="lbl">Nama Peserta:</span>
-            <span class="nama">{{ $attempt->participant_name }} ({{ $attempt->participant_applied_for }})</span>
+            <span class="nama">
+              {{ $attempt->participant_name }}@if (! $isHr) ({{ $attempt->participant_applied_for }})@endif
+            </span>
           </td>
           <td class="skor">{{ $correct }} <span>/ {{ $total }}</span></td>
         </tr>
@@ -113,6 +115,12 @@
               <span class="identity-label">Perusahaan Terakhir</span>
               <span class="identity-value">{{ $attempt->participant_last_company }}</span>
             </td>
+            <td>
+              <span class="identity-label">Sejak Kapan Bekerja</span>
+              <span class="identity-value">{{ \App\Support\ParticipantEmploymentStartMonth::format($attempt->participant_last_job_started_on) }}</span>
+            </td>
+          </tr>
+          <tr>
             <td>
               <span class="identity-label">Domisili Sekarang</span>
               <span class="identity-value">{{ $attempt->participant_current_domicile }}</span>
