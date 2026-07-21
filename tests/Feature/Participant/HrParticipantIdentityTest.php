@@ -13,14 +13,15 @@ it('shows and requires additional identity fields only for HR links', function (
 
     Livewire::test(QuizStart::class, ['token' => $link->token])
         ->assertSet('isHrDivision', true)
+        ->assertDontSee('Jabatan')
         ->assertSee('Usia')
         ->assertSee('Tinggi Badan (cm)')
         ->assertSee('Berat Badan (kg)')
         ->assertSee('Pekerjaan Terakhir')
         ->assertSee('Perusahaan Terakhir')
+        ->assertSee('Sejak Kapan Bekerja')
         ->assertSee('Domisili Sekarang')
         ->set('participantName', 'Budi')
-        ->set('participantAppliedFor', 'HR Officer')
         ->call('saveIdentity')
         ->assertHasErrors([
             'participantAge' => 'required',
@@ -28,8 +29,10 @@ it('shows and requires additional identity fields only for HR links', function (
             'participantWeightKg' => 'required',
             'participantLastJob' => 'required',
             'participantLastCompany' => 'required',
+            'participantLastJobStartedOn' => 'required',
             'participantCurrentDomicile' => 'required',
-        ]);
+        ])
+        ->assertHasNoErrors(['participantAppliedFor']);
 });
 
 it('stores validated HR identity data on the quiz attempt', function () {
@@ -37,12 +40,12 @@ it('stores validated HR identity data on the quiz attempt', function () {
 
     Livewire::test(QuizStart::class, ['token' => $link->token])
         ->set('participantName', 'Siti')
-        ->set('participantAppliedFor', 'Recruiter')
         ->set('participantAge', '27')
         ->set('participantHeightCm', '163.5')
         ->set('participantWeightKg', '54.5')
         ->set('participantLastJob', 'Talent Acquisition')
         ->set('participantLastCompany', 'PT Contoh Indonesia')
+        ->set('participantLastJobStartedOn', '2023-01')
         ->set('participantCurrentDomicile', 'Jakarta Selatan')
         ->call('saveIdentity')
         ->assertHasNoErrors();
@@ -50,11 +53,29 @@ it('stores validated HR identity data on the quiz attempt', function () {
     $attempt = QuizAttempt::query()->sole();
 
     expect($attempt->participant_age)->toBe(27)
+        ->and($attempt->participant_applied_for)->toBe('')
         ->and($attempt->participant_height_cm)->toBe('163.50')
         ->and($attempt->participant_weight_kg)->toBe('54.50')
         ->and($attempt->participant_last_job)->toBe('Talent Acquisition')
         ->and($attempt->participant_last_company)->toBe('PT Contoh Indonesia')
+        ->and($attempt->participant_last_job_started_on?->toDateString())->toBe('2023-01-01')
         ->and($attempt->participant_current_domicile)->toBe('Jakarta Selatan');
+});
+
+it('rejects an invalid HR employment start month', function () {
+    $link = createHrIdentityLink(Division::HR);
+
+    Livewire::test(QuizStart::class, ['token' => $link->token])
+        ->set('participantName', 'Siti')
+        ->set('participantAge', '27')
+        ->set('participantHeightCm', '163.5')
+        ->set('participantWeightKg', '54.5')
+        ->set('participantLastJob', 'Talent Acquisition')
+        ->set('participantLastCompany', 'PT Contoh Indonesia')
+        ->set('participantLastJobStartedOn', '2023-13')
+        ->set('participantCurrentDomicile', 'Jakarta Selatan')
+        ->call('saveIdentity')
+        ->assertHasErrors(['participantLastJobStartedOn' => 'date_format']);
 });
 
 it('does not show or require HR identity fields for Business Development links', function () {
@@ -66,7 +87,9 @@ it('does not show or require HR identity fields for Business Development links',
         ->assertDontSee('Berat Badan (kg)')
         ->assertDontSee('Pekerjaan Terakhir')
         ->assertDontSee('Perusahaan Terakhir')
+        ->assertDontSee('Sejak Kapan Bekerja')
         ->assertDontSee('Domisili Sekarang')
+        ->assertSee('Jabatan/Peringkat')
         ->set('participantName', 'Andi')
         ->set('participantAppliedFor', 'Sales Manager')
         ->call('saveIdentity')
@@ -79,6 +102,7 @@ it('does not show or require HR identity fields for Business Development links',
         ->and($attempt->participant_weight_kg)->toBeNull()
         ->and($attempt->participant_last_job)->toBeNull()
         ->and($attempt->participant_last_company)->toBeNull()
+        ->and($attempt->participant_last_job_started_on)->toBeNull()
         ->and($attempt->participant_current_domicile)->toBeNull();
 });
 
