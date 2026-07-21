@@ -13,6 +13,8 @@ it('shows and requires additional identity fields only for HR links', function (
 
     Livewire::test(QuizStart::class, ['token' => $link->token])
         ->assertSet('isHrDivision', true)
+        ->assertSee('Pastikan internet Anda stabil sebelum mengerjakan test.')
+        ->assertSee('Test tidak dapat diulang.')
         ->assertDontSee('Jabatan')
         ->assertSee('Usia')
         ->assertSee('Tinggi Badan (cm)')
@@ -99,6 +101,8 @@ it('does not show or require HR identity fields for Business Development links',
 
     Livewire::test(QuizStart::class, ['token' => $link->token])
         ->assertSet('isHrDivision', false)
+        ->assertSee('Pastikan internet Anda stabil sebelum mengerjakan test.')
+        ->assertSee('Test tidak dapat diulang.')
         ->assertDontSee('Tinggi Badan (cm)')
         ->assertDontSee('Berat Badan (kg)')
         ->assertDontSee('Pekerjaan Terakhir')
