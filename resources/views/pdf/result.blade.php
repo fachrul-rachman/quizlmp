@@ -93,6 +93,12 @@
         <div class="section-title">Data Peserta HR</div>
         <table>
           <tr>
+            <td colspan="3">
+              <span class="identity-label">Email yang tercantum di CV</span>
+              <span class="identity-value">{{ $attempt->participant_cv_email }}</span>
+            </td>
+          </tr>
+          <tr>
             <td>
               <span class="identity-label">Usia</span>
               <span class="identity-value">{{ $attempt->participant_age }} tahun</span>

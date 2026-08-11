@@ -35,6 +35,8 @@ class QuizStart extends Component
 
     public bool $isHrDivision = false;
 
+    public string $participantCvEmail = '';
+
     public string $participantName = '';
 
     public string $participantAppliedFor = '';
@@ -342,6 +344,7 @@ class QuizStart extends Component
 
         if ($this->isHrLink($link)) {
             $rules += [
+                'participantCvEmail' => ['required', 'string', 'email:rfc', 'max:255'],
                 'participantAge' => ['required', 'integer', 'min:15', 'max:100'],
                 'participantHeightCm' => ['required', 'numeric', 'min:50', 'max:250'],
                 'participantWeightKg' => ['required', 'numeric', 'min:20', 'max:300'],
@@ -367,6 +370,7 @@ class QuizStart extends Component
     private function identityAttributes(): array
     {
         return [
+            'participantCvEmail' => 'Email yang tercantum di CV',
             'participantName' => 'Nama Peserta',
             'participantAppliedFor' => 'Jabatan',
             'participantAge' => 'Usia',
@@ -388,6 +392,7 @@ class QuizStart extends Component
             'division_id' => $link->division_id,
             'participant_name' => trim($this->participantName),
             'participant_applied_for' => $this->participantAppliedFor,
+            'participant_cv_email' => null,
             'participant_age' => null,
             'participant_height_cm' => null,
             'participant_weight_kg' => null,
@@ -402,6 +407,7 @@ class QuizStart extends Component
         }
 
         return array_merge($payload, [
+            'participant_cv_email' => trim($this->participantCvEmail),
             'participant_age' => (int) $this->participantAge,
             'participant_height_cm' => (float) $this->participantHeightCm,
             'participant_weight_kg' => (float) $this->participantWeightKg,
@@ -414,6 +420,7 @@ class QuizStart extends Component
 
     private function hydrateParticipantIdentity(QuizAttempt $attempt): void
     {
+        $this->participantCvEmail = (string) ($attempt->participant_cv_email ?? '');
         $this->participantName = (string) $attempt->participant_name;
         $this->participantAppliedFor = (string) $attempt->participant_applied_for;
         $this->participantAge = $attempt->participant_age !== null ? (string) $attempt->participant_age : '';

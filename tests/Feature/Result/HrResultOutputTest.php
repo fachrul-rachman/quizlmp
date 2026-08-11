@@ -23,6 +23,8 @@ it('renders HR identity data in the result PDF view', function () {
 
     expect($html)
         ->toContain('Data Peserta HR')
+        ->toContain('Email yang tercantum di CV')
+        ->toContain('siti@example.com')
         ->toContain('27 tahun')
         ->toContain('163.50 cm')
         ->toContain('54.50 kg')
@@ -50,6 +52,7 @@ it('includes HR identity data in the Discord result payload', function () {
         $fields = collect(data_get($request->data(), 'embeds.0.fields', []));
 
         return $request->url() === 'https://discord.com/api/webhooks/test/token'
+            && $fields->contains(fn (array $field) => $field['name'] === 'Email yang tercantum di CV' && $field['value'] === 'siti@example.com')
             && $fields->contains(fn (array $field) => $field['name'] === 'Usia' && $field['value'] === '27 tahun')
             && $fields->contains(fn (array $field) => $field['name'] === 'Tinggi / Berat Badan' && $field['value'] === '163.50 cm / 54.50 kg')
             && $fields->contains(fn (array $field) => $field['name'] === 'Pekerjaan Terakhir' && $field['value'] === 'Talent Acquisition')
@@ -80,6 +83,7 @@ it('keeps the position field and excludes HR fields in Business Development Disc
         $fields = collect(data_get($request->data(), 'embeds.0.fields', []));
 
         return $fields->contains(fn (array $field) => $field['name'] === 'Jabatan' && $field['value'] === 'Recruiter')
+            && $fields->doesntContain(fn (array $field) => $field['name'] === 'Email yang tercantum di CV')
             && $fields->doesntContain(fn (array $field) => $field['name'] === 'Sejak Kapan Bekerja')
             && $fields->doesntContain(fn (array $field) => $field['name'] === 'Usia');
     });
@@ -125,6 +129,7 @@ function createResultOutputRecords(string $divisionCode = Division::HR): array
         'division_id' => $division->id,
         'participant_name' => 'Siti',
         'participant_applied_for' => 'Recruiter',
+        'participant_cv_email' => $isHr ? 'siti@example.com' : null,
         'participant_age' => $isHr ? 27 : null,
         'participant_height_cm' => $isHr ? 163.5 : null,
         'participant_weight_kg' => $isHr ? 54.5 : null,

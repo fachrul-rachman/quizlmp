@@ -16,6 +16,7 @@ it('shows and requires additional identity fields only for HR links', function (
         ->assertSee('Pastikan internet Anda stabil sebelum mengerjakan test.')
         ->assertSee('Test tidak dapat diulang.')
         ->assertDontSee('Jabatan')
+        ->assertSeeInOrder(['Email yang tercantum di CV', 'Nama Peserta'])
         ->assertSee('Usia')
         ->assertSee('Tinggi Badan (cm)')
         ->assertSee('Berat Badan (kg)')
@@ -26,6 +27,7 @@ it('shows and requires additional identity fields only for HR links', function (
         ->set('participantName', 'Budi')
         ->call('saveIdentity')
         ->assertHasErrors([
+            'participantCvEmail' => 'required',
             'participantAge' => 'required',
             'participantHeightCm' => 'required',
             'participantWeightKg' => 'required',
@@ -41,6 +43,7 @@ it('stores validated HR identity data on the quiz attempt', function () {
     $link = createHrIdentityLink(Division::HR);
 
     Livewire::test(QuizStart::class, ['token' => $link->token])
+        ->set('participantCvEmail', 'siti@example.com')
         ->set('participantName', 'Siti')
         ->set('participantAge', '27')
         ->set('participantHeightCm', '163.5')
@@ -54,7 +57,8 @@ it('stores validated HR identity data on the quiz attempt', function () {
 
     $attempt = QuizAttempt::query()->sole();
 
-    expect($attempt->participant_age)->toBe(27)
+    expect($attempt->participant_cv_email)->toBe('siti@example.com')
+        ->and($attempt->participant_age)->toBe(27)
         ->and($attempt->participant_applied_for)->toBe('')
         ->and($attempt->participant_height_cm)->toBe('163.50')
         ->and($attempt->participant_weight_kg)->toBe('54.50')
@@ -64,10 +68,21 @@ it('stores validated HR identity data on the quiz attempt', function () {
         ->and($attempt->participant_current_domicile)->toBe('Jakarta Selatan');
 });
 
+it('rejects an invalid HR CV email address', function () {
+    $link = createHrIdentityLink(Division::HR);
+
+    Livewire::test(QuizStart::class, ['token' => $link->token])
+        ->set('participantCvEmail', 'bukan-email')
+        ->set('participantName', 'Siti')
+        ->call('saveIdentity')
+        ->assertHasErrors(['participantCvEmail' => 'email']);
+});
+
 it('rejects an invalid HR employment start month', function () {
     $link = createHrIdentityLink(Division::HR);
 
     Livewire::test(QuizStart::class, ['token' => $link->token])
+        ->set('participantCvEmail', 'siti@example.com')
         ->set('participantName', 'Siti')
         ->set('participantAge', '27')
         ->set('participantHeightCm', '163.5')
@@ -84,6 +99,7 @@ it('rejects an HR employment start month in the future', function () {
     $link = createHrIdentityLink(Division::HR);
 
     Livewire::test(QuizStart::class, ['token' => $link->token])
+        ->set('participantCvEmail', 'siti@example.com')
         ->set('participantName', 'Siti')
         ->set('participantAge', '27')
         ->set('participantHeightCm', '163.5')
@@ -103,6 +119,7 @@ it('does not show or require HR identity fields for Business Development links',
         ->assertSet('isHrDivision', false)
         ->assertSee('Pastikan internet Anda stabil sebelum mengerjakan test.')
         ->assertSee('Test tidak dapat diulang.')
+        ->assertDontSee('Email yang tercantum di CV')
         ->assertDontSee('Tinggi Badan (cm)')
         ->assertDontSee('Berat Badan (kg)')
         ->assertDontSee('Pekerjaan Terakhir')
@@ -117,7 +134,8 @@ it('does not show or require HR identity fields for Business Development links',
 
     $attempt = QuizAttempt::query()->sole();
 
-    expect($attempt->participant_age)->toBeNull()
+    expect($attempt->participant_cv_email)->toBeNull()
+        ->and($attempt->participant_age)->toBeNull()
         ->and($attempt->participant_height_cm)->toBeNull()
         ->and($attempt->participant_weight_kg)->toBeNull()
         ->and($attempt->participant_last_job)->toBeNull()
