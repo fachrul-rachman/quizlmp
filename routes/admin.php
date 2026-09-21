@@ -23,6 +23,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('/quizzes', [AdminQuizController::class, 'index'])->name('quizzes.index');
         Route::get('/quizzes/template', AdminQuizTemplateController::class)->name('quizzes.template');
+        Route::post('/quizzes/export', [AdminQuizController::class, 'export'])->name('quizzes.export');
         Route::get('/quizzes/create', [AdminQuizController::class, 'create'])->name('quizzes.create');
         Route::get('/quizzes/{quiz}', [AdminQuizController::class, 'show'])->name('quizzes.show');
         Route::get('/quizzes/{quiz}/edit', [AdminQuizController::class, 'edit'])->name('quizzes.edit');

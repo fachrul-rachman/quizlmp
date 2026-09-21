@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Quiz;
+use App\Services\Export\QuizExportXlsxService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AdminQuizController extends Controller
 {
@@ -59,6 +61,44 @@ class AdminQuizController extends Controller
     public function create(): View
     {
         return view('admin.quizzes.create');
+    }
+
+    public function export(Request $request, QuizExportXlsxService $exportService): BinaryFileResponse
+    {
+        $data = $request->validate([
+            'quiz_ids' => ['required', 'array', 'min:1', 'max:50'],
+            'quiz_ids.*' => ['required', 'integer', 'distinct'],
+        ], [
+            'quiz_ids.required' => 'Pilih minimal satu quiz untuk diekspor.',
+            'quiz_ids.min' => 'Pilih minimal satu quiz untuk diekspor.',
+        ]);
+
+        $user = $request->user();
+        $quizIds = array_map('intval', array_values($data['quiz_ids']));
+        $quizzesById = Quiz::query()
+            ->when(
+                ($user?->role ?? null) !== 'super_admin',
+                fn ($query) => $query->where('created_by', (int) ($user?->id ?? 0)),
+            )
+            ->whereIntegerInRaw('id', $quizIds)
+            ->with([
+                'questions' => fn ($query) => $query->orderBy('order_number'),
+                'questions.options' => fn ($query) => $query->orderBy('sort_order'),
+                'questions.shortAnswerKeys' => fn ($query) => $query->orderBy('sort_order'),
+            ])
+            ->get()
+            ->keyBy('id');
+
+        if ($quizzesById->count() !== count($quizIds)) {
+            abort(404);
+        }
+
+        $quizzes = collect($quizIds)->map(fn (int $quizId) => $quizzesById->get($quizId));
+        $export = $exportService->exportToTempFile($quizzes);
+
+        return response()
+            ->download($export['path'], $export['download_name'])
+            ->deleteFileAfterSend(true);
     }
 
     public function show(Quiz $quiz): View

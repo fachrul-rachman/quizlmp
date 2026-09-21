@@ -5,12 +5,29 @@
         </div>
     @endif
 
-    <div class="flex items-center justify-between gap-3 mb-4">
+    <form id="quiz-export-form" method="POST" action="{{ route('admin.quizzes.export') }}">
+        @csrf
+    </form>
+
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div class="text-lg font-semibold">Quiz</div>
-        <a href="{{ url('/admin/quizzes/create') }}" class="rounded-md bg-blue-900 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
-            Tambah Quiz
-        </a>
+        <div class="flex items-center gap-2">
+            @if (! $quizzes->isEmpty())
+                <button type="submit" form="quiz-export-form" class="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-900 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-100 dark:hover:bg-blue-900/50">
+                    Export Terpilih
+                </button>
+            @endif
+            <a href="{{ url('/admin/quizzes/create') }}" class="rounded-md bg-blue-900 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
+                Tambah Quiz
+            </a>
+        </div>
     </div>
+
+    @error('quiz_ids')
+        <div class="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
+            {{ $message }}
+        </div>
+    @enderror
 
     <form method="GET" action="{{ url('/admin/quizzes') }}" class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div class="sm:col-span-2">
@@ -43,6 +60,9 @@
                 <table class="min-w-full text-sm">
                     <thead class="bg-zinc-50 text-zinc-600 dark:bg-zinc-900/40 dark:text-zinc-300">
                         <tr>
+                            <th class="w-12 px-4 py-2 text-left font-medium">
+                                <input id="select-all-quizzes" type="checkbox" class="rounded border-zinc-300" aria-label="Pilih semua quiz di halaman ini" />
+                            </th>
                             <th class="px-4 py-2 text-left font-medium">Nama Quiz</th>
                             <th class="px-4 py-2 text-left font-medium">Durasi</th>
                             <th class="px-4 py-2 text-left font-medium">Jumlah Soal</th>
@@ -56,6 +76,9 @@
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                         @foreach ($quizzes as $quiz)
                             <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 align-top">
+                                    <input type="checkbox" name="quiz_ids[]" value="{{ $quiz->id }}" form="quiz-export-form" class="quiz-export-checkbox rounded border-zinc-300" aria-label="Pilih quiz {{ $quiz->title }}" />
+                                </td>
                                 <td class="px-4 py-3 align-top">
                                     <div class="font-semibold">{{ $quiz->title }}</div>
                                 </td>
@@ -114,4 +137,12 @@
             </div>
         @endif
     </div>
+
+    <script>
+        document.getElementById('select-all-quizzes')?.addEventListener('change', function () {
+            document.querySelectorAll('.quiz-export-checkbox').forEach((checkbox) => {
+                checkbox.checked = this.checked;
+            });
+        });
+    </script>
 </x-layouts.admin>
