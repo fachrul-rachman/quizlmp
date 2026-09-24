@@ -130,10 +130,16 @@ it('requires at least one quiz and shows export controls on the quiz list', func
         ->assertRedirect()
         ->assertSessionHasErrors('quiz_ids');
 
-    get('/admin/quizzes')
+    $response = get('/admin/quizzes')
         ->assertOk()
         ->assertSee('Export Terpilih')
         ->assertSee('quiz_ids[]', false);
+
+    $document = new DOMDocument;
+    @$document->loadHTML($response->getContent());
+    $xpath = new DOMXPath($document);
+
+    expect($xpath->query('//button[@form="quiz-export-form" and @data-disable-once-exempt]')->length)->toBe(1);
 });
 
 function createQuizForExport(User $creator, string $title): Quiz
