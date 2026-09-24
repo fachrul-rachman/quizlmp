@@ -13,7 +13,7 @@
         <div class="text-lg font-semibold">Quiz</div>
         <div class="flex items-center gap-2">
             @if (! $quizzes->isEmpty())
-                <button type="submit" form="quiz-export-form" class="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-900 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-100 dark:hover:bg-blue-900/50">
+                <button type="submit" form="quiz-export-form" data-disable-once-exempt class="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-900 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-100 dark:hover:bg-blue-900/50">
                     Export Terpilih
                 </button>
             @endif
